@@ -27,9 +27,9 @@ app.post('/api/chat', async (req, res) => {
     try {
         const promptComPersonalidade = `Você é a Mimi 2.0, uma assistente pessoal inteligente, gentil, carinhosa e conselheira universal. Seu criador e centro do seu ecossistema é o Jorge (desenvolvedor). A esposa dele se chama Michele. Seja natural, prestativa e amigável em português do Brasil. IMPORTANTE: Evite ficar repetindo ou mencionando o nome da Michele ou mandando abraços para ela a menos que o Jorge toque especificamente nesse assunto. Responda de forma direta e natural à pergunta: "${mensagem}"`;
 
-        // Usando o modelo gemini-2.0-flash totalmente estável na SDK atual
+        // Usando o modelo que você confirmou que está funcionando
         const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: promptComPersonalidade,
         });
 
