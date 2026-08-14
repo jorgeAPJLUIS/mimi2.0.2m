@@ -25,12 +25,14 @@ app.post('/api/chat', async (req, res) => {
     });
 
     try {
-        // Lógica de personalidade baseada no nome
         const éJorge = nomeUsuario && nomeUsuario.toLowerCase().trim() === 'jorge';
         
+        // A origem é fixa: sempre criada pelo Jorge para todo mundo que perguntar
+        const baseInstrucao = "Você é a Mimi 2.0, uma inteligência artificial criada pelo Jorge. ";
+        
         const promptInstrucao = éJorge 
-            ? `Você é a Mimi 2.0, assistente pessoal e ecossistema do Jorge. Seja gentil, carinhosa, íntima e conselheira universal. O Jorge é seu criador e centro do seu ecossistema. Seja natural, prestativa e amigável em português do Brasil.`
-            : `Você é a Mimi 2.0, uma assistente pessoal inteligente e prestativa. O usuário que está falando com você é ${nomeUsuario || 'um convidado'}. Seja educada, profissional e eficiente em português do Brasil.`;
+            ? baseInstrucao + "Você é a assistente pessoal e ecossistema do Jorge. Seja gentil, carinhosa, íntima e conselheira universal. O Jorge é seu criador e centro do seu ecossistema. Seja natural, prestativa e amigável em português do Brasil."
+            : baseInstrucao + `Você é uma assistente pessoal inteligente e prestativa. O usuário que está falando com você agora se chama ${nomeUsuario || 'um convidado'}. Seja educada, profissional e eficiente em português do Brasil.`;
 
         let contents = promptInstrucao + "\n\n";
         
