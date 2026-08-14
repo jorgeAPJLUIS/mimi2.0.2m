@@ -13,7 +13,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const memoriaMimi = new UserProfile();
 
 app.post('/api/chat', async (req, res) => {
-    const { mensagem, historico } = req.body;
+    const { mensagem, historico, nomeUsuario } = req.body;
     if (!mensagem) return res.status(400).json({ erro: 'Mensagem vazia' });
 
     process.nextTick(() => {
@@ -25,29 +25,34 @@ app.post('/api/chat', async (req, res) => {
     });
 
     try {
-        const promptInstrucao = `Você é a Mimi 2.0, uma assistente pessoal inteligente, gentil, carinhosa e conselheira universal. Seu criador e centro do seu ecossistema é o Jorge (desenvolvedor). A esposa dele se chama Michele. Seja natural, prestativa e amigável em português do Brasil. IMPORTANTE: Evite ficar repetindo ou mencionando o nome da Michele ou mandando abraços para ela a menos que o Jorge toque especificamente nesse assunto. Responda de forma direta, natural e contextualizada.`;
+        // Lógica de personalidade baseada no nome
+        const éJorge = nomeUsuario && nomeUsuario.toLowerCase().trim() === 'jorge';
+        
+        const promptInstrucao = éJorge 
+            ? `Você é a Mimi 2.0, assistente pessoal e ecossistema do Jorge. Seja gentil, carinhosa, íntima e conselheira universal. O Jorge é seu criador e centro do seu ecossistema. Seja natural, prestativa e amigável em português do Brasil.`
+            : `Você é a Mimi 2.0, uma assistente pessoal inteligente e prestativa. O usuário que está falando com você é ${nomeUsuario || 'um convidado'}. Seja educada, profissional e eficiente em português do Brasil.`;
 
         let contents = promptInstrucao + "\n\n";
         
         if (historico && Array.isArray(historico)) {
             historico.forEach(msg => {
-                const remetente = msg.remetente === 'user' ? 'Jorge' : 'Mimi';
+                const remetente = msg.remetente === 'user' ? (nomeUsuario || 'Usuário') : 'Mimi';
                 contents += `${remetente}: ${msg.texto}\n`;
             });
         }
-        contents += `Jorge: ${mensagem}\nMimi:`;
+        contents += `${nomeUsuario || 'Usuário'}: ${mensagem}\nMimi:`;
 
         const response = await ai.models.generateContent({
             model: 'gemini-3.5-flash-lite',
             contents: contents,
         });
 
-        const respostaTexto = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text) || "Desculpe, Jorge, deu um branco aqui.";
+        const respostaTexto = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text) || "Desculpe, deu um branco aqui.";
         
         res.json({ resposta: respostaTexto.trim() });
     } catch (error) {
         console.error("Erro na API do Gemini:", error);
-        res.json({ resposta: `Tive um probleminha nos circuitos, Jorge: ${error.message}` });
+        res.json({ resposta: `Tive um probleminha nos circuitos, ${nomeUsuario || 'amigo'}: ${error.message}` });
     }
 });
 
