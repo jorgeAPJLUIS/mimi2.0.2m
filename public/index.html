@@ -36,6 +36,9 @@
         const chatContainer = document.getElementById('chat-container');
         const userInput = document.getElementById('userInput');
         let vozAtiva = true;
+        
+        // Histórico de conversas da sessão atual
+        let historicoConversa = [];
 
         function alternarVoz() {
             vozAtiva = !vozAtiva;
@@ -50,7 +53,7 @@
             }
         }
 
-       function falarTexto(texto) {
+        function falarTexto(texto) {
             if (!vozAtiva || !('speechSynthesis' in window)) return;
             
             window.speechSynthesis.cancel();
@@ -61,20 +64,17 @@
 
             const voices = window.speechSynthesis.getVoices();
             
-            // Tenta encontrar uma voz que seja do Google ou Microsoft (costumam ser melhores)
             const vozMelhor = voices.find(v => 
                 (v.name.includes('Google') || v.name.includes('Microsoft')) && 
                 (v.lang === 'pt-BR' || v.lang === 'pt_BR')
             );
             
-            // Se achar a melhor, usa ela, senão pega a primeira que achar em português
             const vozPadrao = voices.find(v => v.lang === 'pt-BR' || v.lang === 'pt_BR');
             
             utterance.voice = vozMelhor || vozPadrao;
 
             window.speechSynthesis.speak(utterance);
         }
-            
 
         if ('speechSynthesis' in window) {
             window.speechSynthesis.onvoiceschanged = () => {
@@ -91,6 +91,8 @@
             if (!texto) return;
 
             adicionarMensagem(texto, 'user');
+            historicoConversa.push({ remetente: 'user', texto: texto });
+
             userInput.value = '';
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
@@ -98,11 +100,16 @@
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mensagem: texto })
+                    body: JSON.stringify({ 
+                        mensagem: texto, 
+                        historico: historicoConversa 
+                    })
                 });
                 const data = await res.json();
                 
                 adicionarMensagem(data.resposta, 'mimi');
+                historicoConversa.push({ remetente: 'mimi', texto: data.resposta });
+
                 falarTexto(data.resposta);
 
             } catch (err) {
