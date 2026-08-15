@@ -8,15 +8,15 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-// Garante que a raiz sirva diretamente o index.html
+// Diz ao servidor para servir os arquivos estáticos de dentro da pasta public
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rota principal servindo o index.html de dentro da pasta public
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Arquivos estáticos (caso tenha mais coisas)
-app.use(express.static(path.join(__dirname)));
-
-// Rota principal do Chat e do Agente Dev
+// Rota do Chat e Agente Dev
 app.post('/api/chat', async (req, res) => {
     const { mensagem, historico, nomeUsuario } = req.body;
 
@@ -28,14 +28,14 @@ app.post('/api/chat', async (req, res) => {
                 if (error) {
                     return res.json({ resposta: `Chefe, deu erro no Git: ${error.message}` });
                 }
-                res.json({ resposta: `Comando executado com sucesso! Alterações enviadas para o GitHub/Render.\nLog: ${stdout}` });
+                res.json({ resposta: `Comando executado com sucesso! Alterações enviadas.\nLog: ${stdout}` });
             });
             return;
         }
     }
 
     res.json({ 
-        resposta: `Entendido, ${nomeUsuario}! Estou operacional e pronta. O modo dev está aguardando seus comandos.` 
+        resposta: `Entendido, ${nomeUsuario}! Estou operacional e pronta.` 
     });
 });
 
