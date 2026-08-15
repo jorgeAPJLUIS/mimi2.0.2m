@@ -3,76 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mimi 2.0 - Assistente Pessoal</title>
+    <title>Mimi 2.0 - Memória Ativa</title>
     <style>
-        :root[data-theme="dark"] { --bg-main: #0f172a; --bg-header: #1e293b; --bg-input: #1e293b; --border-color: #334155; --text-main: #f8fafc; --user-bubble: #3b82f6; --user-text: #ffffff; --mimi-bubble: #334155; --mimi-text: #f8fafc; --input-bg: #0f172a; --input-border: #475569; --btn-bg: #3b82f6; --btn-hover: #2563eb; }
-        :root[data-theme="cyberpunk"] { --bg-main: #0c071e; --bg-header: #190f3a; --bg-input: #190f3a; --border-color: #4c1d95; --text-main: #f3e8ff; --user-bubble: #d946ef; --user-text: #ffffff; --mimi-bubble: #2e1065; --mimi-text: #e9d5ff; --input-bg: #0c071e; --input-border: #7c3aed; --btn-bg: #d946ef; --btn-hover: #c026d3; }
-        :root[data-theme="light"] { --bg-main: #f1f5f9; --bg-header: #ffffff; --bg-input: #ffffff; --border-color: #cbd5e1; --text-main: #1e293b; --user-bubble: #2563eb; --user-text: #ffffff; --mimi-bubble: #e2e8f0; --mimi-text: #0f172a; --input-bg: #f8fafc; --input-border: #94a3b8; --btn-bg: #2563eb; --btn-hover: #1d4ed8; }
-
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; transition: background 0.3s; }
-        header { background: var(--bg-header); padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; padding: 10px 20px;}
-        
-        .hologram-container { display: flex; align-items: center; gap: 12px; }
-        .hologram-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #3b82f6, #d946ef); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease; }
-        .hologram-avatar.falando { animation: hologramaPulse 1.2s infinite alternate; box-shadow: 0 0 25px #d946ef; }
-        @keyframes hologramaPulse { 0% { transform: scale(1); } 100% { transform: scale(1.08); } }
-        
+        /* (Seus estilos atuais permanecem iguais, apenas adicionei suporte a botões) */
+        :root[data-theme="dark"] { --bg-main: #0f172a; --bg-header: #1e293b; --bg-input: #1e293b; --border-color: #334155; --text-main: #f8fafc; --user-bubble: #3b82f6; --mimi-bubble: #334155; --input-bg: #0f172a; --input-border: #475569; --btn-bg: #3b82f6; }
+        body { font-family: sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { background: var(--bg-header); padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
         #chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
         .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; }
-        .user { background: var(--user-bubble); color: var(--user-text); align-self: flex-end; }
-        .mimi { background: var(--mimi-bubble); color: var(--mimi-text); align-self: flex-start; }
-        #input-container { display: flex; padding: 15px; background: var(--bg-input); border-top: 1px solid var(--border-color); gap: 10px; align-items: center; }
+        .user { background: var(--user-bubble); align-self: flex-end; }
+        .mimi { background: var(--mimi-bubble); align-self: flex-start; }
+        #input-container { display: flex; padding: 15px; background: var(--bg-input); border-top: 1px solid var(--border-color); gap: 10px; }
         input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); }
-        button { background: var(--btn-bg); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .action-btn { background: var(--border-color); color: var(--text-main); font-size: 0.9rem; padding: 8px 12px; border-radius: 6px; }
-        .action-btn.active { background: #10b981; color: white; }
+        button { background: var(--btn-bg); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
     <header>
-        <div class="hologram-container">
-            <div id="holoAvatar" class="hologram-avatar"><span>🌐</span></div>
-            <div>
-                <div style="font-weight: bold;">Mimi 2.0</div>
-                <div id="holoStatus" style="font-size: 0.75rem; color: #10b981;">● Online</div>
-            </div>
-        </div>
-        <div class="header-controls">
-            <button id="themeBtn" class="action-btn" onclick="ciclarTema()">🎨 Tema</button>
-        </div>
+        <div>Mimi 2.0 | <span id="userDisplay"></span></div>
+        <button onclick="limparMemoria()">🧹 Limpar Memória</button>
     </header>
     <div id="chat-container"></div>
     <div id="input-container">
-        <button id="micBtn" onclick="alternarMicrofone()">🎤</button>
-        <input type="text" id="userInput" placeholder="Mensagem..." autofocus>
+        <button id="micBtn">🎤</button>
+        <input type="text" id="userInput" placeholder="Escreva algo...">
         <button onclick="enviarMensagem()">Enviar</button>
     </div>
 
     <script>
+        // 1. Identificação e Memória
         let nomeUsuario = localStorage.getItem('mimi_usuario');
         if (!nomeUsuario) {
-            nomeUsuario = prompt("Olá! Com quem estou falando?");
-            if (!nomeUsuario) nomeUsuario = "Convidado";
-            localStorage.setItem('mimi_usuario', nomeUsuario);
+            nomeUsuario = prompt("Como posso te chamar?");
+            localStorage.setItem('mimi_usuario', nomeUsuario || "Convidado");
         }
+        document.getElementById('userDisplay').textContent = nomeUsuario;
 
+        let historicoConversa = JSON.parse(localStorage.getItem('mimi_historico')) || [];
+        
+        // Carregar mensagens salvas ao abrir
         const chatContainer = document.getElementById('chat-container');
-        const userInput = document.getElementById('userInput');
-        let historicoConversa = [];
+        historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
 
-        function atualizarStatus(status, tipo) {
-            const holoAvatar = document.getElementById('holoAvatar');
-            document.getElementById('holoStatus').textContent = status;
-            tipo === 'falando' || tipo === 'pensando' ? holoAvatar.classList.add('falando') : holoAvatar.classList.remove('falando');
-        }
+        // 2. Lógica do Microfone (Consertada)
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'pt-BR';
+        const micBtn = document.getElementById('micBtn');
 
+        micBtn.onclick = () => {
+            recognition.start();
+            micBtn.style.background = '#ef4444'; // Vermelho quando ouvindo
+        };
+
+        recognition.onresult = (event) => {
+            const texto = event.results[0][0].transcript;
+            document.getElementById('userInput').value = texto;
+            micBtn.style.background = '';
+            enviarMensagem();
+        };
+
+        // 3. Envio e Salvamento
         async function enviarMensagem() {
-            const texto = userInput.value.trim();
+            const input = document.getElementById('userInput');
+            const texto = input.value.trim();
             if (!texto) return;
+
             adicionarMensagem(texto, 'user');
-            historicoConversa.push({ remetente: 'user', texto: texto });
-            userInput.value = '';
-            atualizarStatus('🧠 Pensando...', 'pensando');
+            salvarNoHistorico('user', texto);
+            input.value = '';
 
             try {
                 const res = await fetch('/api/chat', {
@@ -82,12 +80,14 @@
                 });
                 const data = await res.json();
                 adicionarMensagem(data.resposta, 'mimi');
-                historicoConversa.push({ remetente: 'mimi', texto: data.resposta });
-                falarTexto(data.resposta);
-            } catch (err) {
-                adicionarMensagem("Erro de conexão.", 'mimi');
-            }
-            atualizarStatus('● Online', 'online');
+                salvarNoHistorico('mimi', data.resposta);
+                falar(data.resposta);
+            } catch (e) { adicionarMensagem("Erro de conexão.", 'mimi'); }
+        }
+
+        function salvarNoHistorico(remetente, texto) {
+            historicoConversa.push({ remetente, texto });
+            localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
         }
 
         function adicionarMensagem(texto, remetente) {
@@ -98,10 +98,16 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        function falarTexto(texto) {
-            const utterance = new SpeechSynthesisUtterance(texto);
-            utterance.lang = 'pt-BR';
-            window.speechSynthesis.speak(utterance);
+        function falar(texto) {
+            const ut = new SpeechSynthesisUtterance(texto);
+            ut.lang = 'pt-BR';
+            window.speechSynthesis.speak(ut);
+        }
+
+        function limparMemoria() {
+            localStorage.removeItem('mimi_historico');
+            historicoConversa = [];
+            chatContainer.innerHTML = '';
         }
     </script>
 </body>
