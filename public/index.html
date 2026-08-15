@@ -5,28 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mimi 2.0 - Memória Ativa</title>
     <style>
-        /* (Seus estilos atuais permanecem iguais, apenas adicionei suporte a botões) */
-        :root[data-theme="dark"] { --bg-main: #0f172a; --bg-header: #1e293b; --bg-input: #1e293b; --border-color: #334155; --text-main: #f8fafc; --user-bubble: #3b82f6; --mimi-bubble: #334155; --input-bg: #0f172a; --input-border: #475569; --btn-bg: #3b82f6; }
+        :root[data-theme="dark"] { 
+            --bg-main: #0f172a; 
+            --bg-header: #1e293b; 
+            --bg-input: #1e293b; 
+            --border-color: #334155; 
+            --text-main: #f8fafc; 
+            --user-bubble: #3b82f6; 
+            --mimi-bubble: #334155; 
+            --input-bg: #0f172a; 
+            --input-border: #475569; 
+            --btn-bg: #3b82f6; 
+        }
         body { font-family: sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { background: var(--bg-header); padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; }
+        
+        header { 
+            background: var(--bg-header); 
+            padding: 12px 20px; 
+            border-bottom: 1px solid var(--border-color); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Estilo do Orbe Holográfico */
+        #hologram-orb {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 70%, #0369a1 100%);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.6), inset 0 0 6px rgba(255, 255, 255, 0.6);
+            transition: all 0.3s ease;
+        }
+
+        /* Animação quando a Mimi fala ou ouve */
+        .pulsing {
+            animation: pulse-hologram 0.8s infinite alternate;
+        }
+
+        .listening {
+            background: radial-gradient(circle, #ef4444 0%, #dc2626 70%, #991b1b 100%) !important;
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.6) !important;
+            animation: pulse-hologram 0.5s infinite alternate !important;
+        }
+
+        @keyframes pulse-hologram {
+            0% { transform: scale(1); box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+            100% { transform: scale(1.15); box-shadow: 0 0 20px rgba(56, 189, 248, 0.9); }
+        }
+
         #chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; }
+        .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.4; }
         .user { background: var(--user-bubble); align-self: flex-end; }
         .mimi { background: var(--mimi-bubble); align-self: flex-start; }
         #input-container { display: flex; padding: 15px; background: var(--bg-input); border-top: 1px solid var(--border-color); gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); }
-        button { background: var(--btn-bg); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); outline: none; }
+        button { background: var(--btn-bg); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        button:active { opacity: 0.8; }
     </style>
 </head>
 <body>
     <header>
-        <div>Mimi 2.0 | <span id="userDisplay"></span></div>
+        <div class="header-left">
+            <!-- Orbe Holográfico -->
+            <div id="hologram-orb"></div>
+            <div>Mimi 2.0 | <span id="userDisplay"></span></div>
+        </div>
         <button onclick="limparMemoria()">🧹 Limpar Memória</button>
     </header>
+    
     <div id="chat-container"></div>
+    
     <div id="input-container">
-        <button id="micBtn">🎤</button>
-        <input type="text" id="userInput" placeholder="Escreva algo...">
+        <button id="micBtn" title="Falar com a Mimi">🎤</button>
+        <input type="text" id="userInput" placeholder="Escreva algo ou use o microfone..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
         <button onclick="enviarMensagem()">Enviar</button>
     </div>
 
@@ -41,25 +99,43 @@
 
         let historicoConversa = JSON.parse(localStorage.getItem('mimi_historico')) || [];
         
-        // Carregar mensagens salvas ao abrir
         const chatContainer = document.getElementById('chat-container');
+        const orb = document.getElementById('hologram-orb');
+
+        // Carregar mensagens salvas ao abrir
         historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
 
-        // 2. Lógica do Microfone (Consertada)
+        // 2. Lógica do Microfone
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.lang = 'pt-BR';
         const micBtn = document.getElementById('micBtn');
 
         micBtn.onclick = () => {
-            recognition.start();
-            micBtn.style.background = '#ef4444'; // Vermelho quando ouvindo
+            try {
+                recognition.start();
+                micBtn.style.background = '#ef4444';
+                orb.classList.add('listening');
+            } catch (e) {
+                console.log("Reconhecimento já iniciado ou não suportado.");
+            }
         };
 
         recognition.onresult = (event) => {
             const texto = event.results[0][0].transcript;
             document.getElementById('userInput').value = texto;
             micBtn.style.background = '';
+            orb.classList.remove('listening');
             enviarMensagem();
+        };
+
+        recognition.onerror = () => {
+            micBtn.style.background = '';
+            orb.classList.remove('listening');
+        };
+
+        recognition.onend = () => {
+            micBtn.style.background = '';
+            orb.classList.remove('listening');
         };
 
         // 3. Envio e Salvamento
@@ -82,7 +158,9 @@
                 adicionarMensagem(data.resposta, 'mimi');
                 salvarNoHistorico('mimi', data.resposta);
                 falar(data.resposta);
-            } catch (e) { adicionarMensagem("Erro de conexão.", 'mimi'); }
+            } catch (e) { 
+                adicionarMensagem("Erro de conexão.", 'mimi'); 
+            }
         }
 
         function salvarNoHistorico(remetente, texto) {
@@ -98,16 +176,36 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
+        // 4. Síntese de Voz com Reação Holográfica
         function falar(texto) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel(); // Para qualquer fala anterior
+
             const ut = new SpeechSynthesisUtterance(texto);
             ut.lang = 'pt-BR';
+            
+            // Faz o orbe pulsar enquanto ela fala
+            ut.onstart = () => {
+                orb.classList.add('pulsing');
+            };
+            
+            ut.onend = () => {
+                orb.classList.remove('pulsing');
+            };
+
+            ut.onerror = () => {
+                orb.classList.remove('pulsing');
+            };
+
             window.speechSynthesis.speak(ut);
         }
 
         function limparMemoria() {
-            localStorage.removeItem('mimi_historico');
-            historicoConversa = [];
-            chatContainer.innerHTML = '';
+            if (confirm("Deseja limpar o histórico de conversas?")) {
+                localStorage.removeItem('mimi_historico');
+                historicoConversa = [];
+                chatContainer.innerHTML = '';
+            }
         }
     </script>
 </body>
