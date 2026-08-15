@@ -2,8 +2,8 @@
 <html lang="pt-BR" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mimi 2.0 - Memória Ativa</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mimi 2.0 - Núcleo Holográfico</title>
     <style>
         :root[data-theme="dark"] { 
             --bg-main: #0f172a; 
@@ -17,7 +17,16 @@
             --input-border: #475569; 
             --btn-bg: #3b82f6; 
         }
-        body { font-family: sans-serif; background: var(--bg-main); color: var(--text-main); margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        body { 
+            font-family: sans-serif; 
+            background: var(--bg-main); 
+            color: var(--text-main); 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            overflow: hidden; 
+        }
         
         header { 
             background: var(--bg-header); 
@@ -26,6 +35,7 @@
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
+            z-index: 10;
         }
 
         .header-left {
@@ -34,53 +44,163 @@
             gap: 12px;
         }
 
-        /* Estilo do Orbe Holográfico */
+        /* --- NÚCLEO HOLOGRÁFICO AVANÇADO (NOVO DESIGN) --- */
+        #orb-container-fixo {
+            position: fixed;
+            bottom: 75px;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .orb-wrapper {
+            position: relative;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+        }
+
+        /* O Orbe Central */
         #hologram-orb {
-            width: 36px;
-            height: 36px;
+            width: 65px;
+            height: 65px;
             border-radius: 50%;
-            background: radial-gradient(circle, #38bdf8 0%, #0284c7 70%, #0369a1 100%);
-            box-shadow: 0 0 12px rgba(56, 189, 248, 0.6), inset 0 0 6px rgba(255, 255, 255, 0.6);
-            transition: all 0.3s ease;
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, #0369a1 100%);
+            box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.8);
+            transition: transform 0.1s ease, background 0.3s ease;
+            cursor: pointer;
+            z-index: 2;
         }
 
-        /* Animação quando a Mimi fala ou ouve */
-        .pulsing {
-            animation: pulse-hologram 0.8s infinite alternate;
+        /* Anéis Orbitais ao Redor do Orbe */
+        .orbital-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 1px dashed rgba(56, 189, 248, 0.4);
+            animation: girarOrbital 8s linear infinite;
+            pointer-events: none;
         }
 
-        .listening {
-            background: radial-gradient(circle, #ef4444 0%, #dc2626 70%, #991b1b 100%) !important;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.8), inset 0 0 6px rgba(255, 255, 255, 0.6) !important;
-            animation: pulse-hologram 0.5s infinite alternate !important;
+        .ring-1 {
+            width: 82px;
+            height: 82px;
+            border-color: rgba(56, 189, 248, 0.6);
+            animation-duration: 6s;
         }
 
-        @keyframes pulse-hologram {
-            0% { transform: scale(1); box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
-            100% { transform: scale(1.15); box-shadow: 0 0 20px rgba(56, 189, 248, 0.9); }
+        .ring-2 {
+            width: 98px;
+            height: 98px;
+            border-style: dotted;
+            border-color: rgba(14, 165, 233, 0.3);
+            animation-duration: 12s;
+            animation-direction: reverse;
         }
 
-        #chat-container { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-        .message { max-width: 80%; padding: 12px 16px; border-radius: 15px; line-height: 1.4; }
+        /* Estados do Núcleo */
+        .listening #hologram-orb {
+            background: radial-gradient(circle, #ef4444 0%, #dc2626 60%, #991b1b 100%) !important;
+            box-shadow: 0 0 35px rgba(239, 68, 68, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .listening .orbital-ring {
+            border-color: rgba(239, 68, 68, 0.7);
+            animation-duration: 2s;
+        }
+
+        .pulsing .orbital-ring {
+            border-color: rgba(34, 197, 94, 0.8);
+            animation-duration: 3s;
+        }
+
+        @keyframes girarOrbital {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* --- ÁREA DE CHAT --- */
+        #chat-container { 
+            flex: 1; 
+            padding: 15px; 
+            padding-bottom: 140px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+
+        .message { 
+            max-width: 80%; 
+            padding: 12px 16px; 
+            border-radius: 15px; 
+            line-height: 1.4; 
+        }
         .user { background: var(--user-bubble); align-self: flex-end; }
         .mimi { background: var(--mimi-bubble); align-self: flex-start; }
-        #input-container { display: flex; padding: 15px; background: var(--bg-input); border-top: 1px solid var(--border-color); gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-main); outline: none; }
-        button { background: var(--btn-bg); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+
+        /* --- CAMPO DE INPUT --- */
+        #input-container { 
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            box-sizing: border-box;
+            display: flex; 
+            padding: 12px 15px; 
+            background: var(--bg-input); 
+            border-top: 1px solid var(--border-color); 
+            gap: 10px; 
+            z-index: 101;
+        }
+        
+        input { 
+            flex: 1; 
+            padding: 12px; 
+            border-radius: 8px; 
+            border: 1px solid var(--input-border); 
+            background: var(--input-bg); 
+            color: var(--text-main); 
+            outline: none; 
+            font-size: 16px;
+        }
+
+        button { 
+            background: var(--btn-bg); 
+            color: white; 
+            border: none; 
+            padding: 10px 16px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+        }
         button:active { opacity: 0.8; }
     </style>
 </head>
 <body>
     <header>
         <div class="header-left">
-            <!-- Orbe Holográfico -->
-            <div id="hologram-orb"></div>
             <div>Mimi 2.0 | <span id="userDisplay"></span></div>
         </div>
-        <button onclick="limparMemoria()">🧹 Limpar Memória</button>
+        <button onclick="limparMemoria()">🧹 Limpar</button>
     </header>
     
     <div id="chat-container"></div>
+
+    <!-- ORBE HOLOGRÁFICO COM ANÉIS ORBITAIS -->
+    <div id="orb-container-fixo">
+        <div class="orb-wrapper" id="orbWrapper">
+            <div class="orbital-ring ring-1"></div>
+            <div class="orbital-ring ring-2"></div>
+            <div id="hologram-orb"></div>
+        </div>
+    </div>
     
     <div id="input-container">
         <button id="micBtn" title="Falar com a Mimi">🎤</button>
@@ -100,6 +220,7 @@
         let historicoConversa = JSON.parse(localStorage.getItem('mimi_historico')) || [];
         
         const chatContainer = document.getElementById('chat-container');
+        const orbWrapper = document.getElementById('orbWrapper');
         const orb = document.getElementById('hologram-orb');
 
         // Carregar mensagens salvas ao abrir
@@ -114,9 +235,9 @@
             try {
                 recognition.start();
                 micBtn.style.background = '#ef4444';
-                orb.classList.add('listening');
+                orbWrapper.classList.add('listening');
             } catch (e) {
-                console.log("Reconhecimento já iniciado ou não suportado.");
+                console.log("Reconhecimento já iniciado.");
             }
         };
 
@@ -124,18 +245,18 @@
             const texto = event.results[0][0].transcript;
             document.getElementById('userInput').value = texto;
             micBtn.style.background = '';
-            orb.classList.remove('listening');
+            orbWrapper.classList.remove('listening');
             enviarMensagem();
         };
 
         recognition.onerror = () => {
             micBtn.style.background = '';
-            orb.classList.remove('listening');
+            orbWrapper.classList.remove('listening');
         };
 
         recognition.onend = () => {
             micBtn.style.background = '';
-            orb.classList.remove('listening');
+            orbWrapper.classList.remove('listening');
         };
 
         // 3. Envio e Salvamento
@@ -176,25 +297,36 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // 4. Síntese de Voz com Reação Holográfica
+        // 4. Síntese de Voz com Reação Holográfica Baseada em Tamanho/Pulsação
         function falar(texto) {
             if (!window.speechSynthesis) return;
-            window.speechSynthesis.cancel(); // Para qualquer fala anterior
+            window.speechSynthesis.cancel();
 
             const ut = new SpeechSynthesisUtterance(texto);
             ut.lang = 'pt-BR';
             
-            // Faz o orbe pulsar enquanto ela fala
+            // Simulação dinâmica de batimento enquanto fala
+            let intervaloSacudir;
             ut.onstart = () => {
-                orb.classList.add('pulsing');
+                orbWrapper.classList.add('pulsing');
+                // Faz o orbe pulsar suavemente de tamanho baseando-se no tempo de fala
+                let expandir = true;
+                intervaloSacudir = setInterval(() => {
+                    orb.style.transform = expandir ? 'scale(1.2)' : 'scale(1.0)';
+                    expandir = !expandir;
+                }, 250);
             };
             
             ut.onend = () => {
-                orb.classList.remove('pulsing');
+                orbWrapper.classList.remove('pulsing');
+                clearInterval(intervaloSacudir);
+                orb.style.transform = 'scale(1)';
             };
 
             ut.onerror = () => {
-                orb.classList.remove('pulsing');
+                orbWrapper.classList.remove('pulsing');
+                clearInterval(intervaloSacudir);
+                orb.style.transform = 'scale(1)';
             };
 
             window.speechSynthesis.speak(ut);
