@@ -45,10 +45,9 @@ app.post('/api/chat', async (req, res) => {
             return res.json({ resposta: `Base acessada, ${usuarioAtual}! 🧠\nNome: ${u.nome}\nEstilo: ${u.estiloDeVida?.trabalhoOuEstudo || 'Desenvolvedor'}` });
         }
 
-        // LIMITA O HISTÓRICO PARA AS ÚLTIMAS 6 MENSAGENS (Evita o erro 429)
         let contextoHistorico = "";
         if (historico && Array.isArray(historico) && historico.length > 0) {
-            const ultimasMensagens = historico.slice(-6);
+            const ultimasMensagens = historico.slice(-4); // Pega apenas as últimas 4 para garantir leveza máxima
             contextoHistorico = ultimasMensagens.map(h => 
                 `${h.remetente === 'user' ? usuarioAtual : 'Mimi'}: ${h.texto}`
             ).join('\n');
@@ -60,7 +59,7 @@ app.post('/api/chat', async (req, res) => {
             Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente, gentil e tecnológica. 
             Você está conversando agora com: ${usuarioAtual}.
             
-            Histórico recente da conversa:
+            Histórico recente:
             ${contextoHistorico}
             
             ${usuarioAtual} diz: "${mensagem}"
@@ -76,8 +75,8 @@ app.post('/api/chat', async (req, res) => {
         res.json({ resposta: textoResposta });
 
     } catch (error) {
-        console.error("Erro na API:", error);
-        res.json({ resposta: "Mimi está processando muita informação... aguarde um instante e tente novamente, Jorge!" });
+        console.error("ERRO REAL DA API:", error.message);
+        res.json({ resposta: `Erro interno na IA: ${error.message}` });
     }
 });
 
