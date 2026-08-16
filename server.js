@@ -11,29 +11,56 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const memoriaMimi = new UserProfile();
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/api/chat', async (req, res) => {
     try {
         const { mensagem, historico, nomeUsuario } = req.body;
-        const usuarioAtual = nomeUsuario || "Convidado";
+        const usuarioAtual = nomeUsuario || "Jorge";
 
-        if (!mensagem) return res.json({ resposta: "Mandei vazio, Chefe?" });
-
-        // Salva interação no perfil (memória local do servidor)
-        memoriaMimi.adicionarInteracao(`${usuarioAtual}: ${mensagem}`);
-
-        // Monta o contexto para a IA (Histórico + Nome do Usuário)
-        let contextoHistorico = "";
-        if (historico && historico.length > 0) {
-            contextoHistorico = historico.map(h => `${h.remetente === 'user' ? usuarioAtual : 'Mimi'}: ${h.texto}`).join('\n');
+        if (!mensagem) {
+            return res.json({ resposta: "Mandei vazio, Chefe?" });
         }
 
+        memoriaMimi.adicionarInteracao(`${usuarioAtual}: ${mensagem}`);
+
+        if (mensagem.toLowerCase().startsWith('mimi dev:')) {
+            const acao = mensagem.replace('mimi dev:', '').trim();
+            if (acao.includes('atualizar git') || acao.includes('fazer push')) {
+                exec('git add . && git commit -m "Auto-update via Mimi Dev Agent" && git push', (error, stdout) => {
+                    if (error) return res.json({ resposta: `Erro no Git: ${error.message}` });
+                    res.json({ resposta: `Comando executado!\nLog: ${stdout}` });
+                });
+                return;
+            }
+        }
+
+        if (mensagem.toLowerCase().includes('quem sou eu')) {
+            const u = memoriaMimi.obterDadosUsuario();
+            return res.json({ resposta: `Base acessada, ${usuarioAtual}! 🧠\nNome: ${u.nome}\nEstilo: ${u.estiloDeVida?.trabalhoOuEstudo || 'Desenvolvedor'}` });
+        }
+
+        // LIMITA O HISTÓRICO PARA AS ÚLTIMAS 6 MENSAGENS (Evita o erro 429)
+        let contextoHistorico = "";
+        if (historico && Array.isArray(historico) && historico.length > 0) {
+            const ultimasMensagens = historico.slice(-6);
+            contextoHistorico = ultimasMensagens.map(h => 
+                `${h.remetente === 'user' ? usuarioAtual : 'Mimi'}: ${h.texto}`
+            ).join('\n');
+        }
+
+        const identidadeMimi = memoriaMimi.obterIdentidadeMimi();
+
         const prompt = `
-            Você é a Mimi 2.0, assistente pessoal do Jorge. 
-            Diretriz: Você está falando com ${usuarioAtual}.
+            Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente, gentil e tecnológica. 
+            Você está conversando agora com: ${usuarioAtual}.
             
-            Histórico recente:
+            Histórico recente da conversa:
             ${contextoHistorico}
             
             ${usuarioAtual} diz: "${mensagem}"
@@ -44,12 +71,16 @@ app.post('/api/chat', async (req, res) => {
             contents: prompt,
         });
 
-        const textoResposta = response.text || "Desculpe, não consegui processar a resposta.";
+        const textoResposta = response.text || (response.candidates && response.candidates[0]?.content?.parts[0]?.text) || "Desculpe, não consegui processar a resposta.";
+        
         res.json({ resposta: textoResposta });
 
     } catch (error) {
-        res.status(500).json({ resposta: `Erro no sistema: ${error.message}` });
+        console.error("Erro na API:", error);
+        res.json({ resposta: "Mimi está processando muita informação... aguarde um instante e tente novamente, Jorge!" });
     }
 });
 
-app.listen(PORT, () => console.log(`Mimi rodando na porta ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Mimi 2.0 rodando na porta ${PORT}`);
+});
