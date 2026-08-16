@@ -5,36 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mimi 2.0 - Núcleo Holográfico</title>
     <style>
-        :root[data-theme="dark"] { 
-            --bg-main: #0f172a; 
-            --bg-header: #1e293b; 
-            --bg-input: #1e293b; 
-            --border-color: #334155; 
-            --text-main: #f8fafc; 
-            --user-bubble: #3b82f6; 
-            --mimi-bubble: #334155; 
-            --input-bg: #0f172a; 
-            --input-border: #475569; 
-            --btn-bg: #3b82f6; 
+        :root[data-theme="dark"] {
+            --bg-main: #0f172a;
+            --bg-header: #1e293b;
+            --bg-input: #1e293b;
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --user-bubble: #3b82f6;
+            --mimi-bubble: #334155;
+            --input-bg: #0f172a;
+            --input-border: #475569;
+            --btn-bg: #3b82f6;
         }
-        body { 
-            font-family: sans-serif; 
-            background: var(--bg-main); 
-            color: var(--text-main); 
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100vh; 
-            overflow: hidden; 
+        body {
+            font-family: sans-serif;
+            background: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
         }
-        
-        header { 
-            background: var(--bg-header); 
-            padding: 12px 20px; 
-            border-bottom: 1px solid var(--border-color); 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
+
+        header {
+            background: var(--bg-header);
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             z-index: 10;
         }
 
@@ -44,7 +44,6 @@
             gap: 12px;
         }
 
-        /* --- NÚCLEO HOLOGRÁFICO AVANÇADO (NOVO DESIGN) --- */
         #orb-container-fixo {
             position: fixed;
             bottom: 75px;
@@ -67,7 +66,6 @@
             pointer-events: auto;
         }
 
-        /* O Orbe Central */
         #hologram-orb {
             width: 65px;
             height: 65px;
@@ -79,7 +77,6 @@
             z-index: 2;
         }
 
-        /* Anéis Orbitais ao Redor do Orbe */
         .orbital-ring {
             position: absolute;
             border-radius: 50%;
@@ -104,7 +101,6 @@
             animation-direction: reverse;
         }
 
-        /* Estados do Núcleo */
         .listening #hologram-orb {
             background: radial-gradient(circle, #ef4444 0%, #dc2626 60%, #991b1b 100%) !important;
             box-shadow: 0 0 35px rgba(239, 68, 68, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.9) !important;
@@ -125,62 +121,86 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* --- ÁREA DE CHAT --- */
-        #chat-container { 
-            flex: 1; 
-            padding: 15px; 
-            padding-bottom: 140px; 
-            overflow-y: auto; 
-            display: flex; 
-            flex-direction: column; 
-            gap: 10px; 
+        #chat-container {
+            flex: 1;
+            padding: 15px;
+            padding-bottom: 140px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
-        .message { 
-            max-width: 80%; 
-            padding: 12px 16px; 
-            border-radius: 15px; 
-            line-height: 1.4; 
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            line-height: 1.4;
+            word-wrap: break-word;
         }
         .user { background: var(--user-bubble); align-self: flex-end; }
         .mimi { background: var(--mimi-bubble); align-self: flex-start; }
 
-        /* --- CAMPO DE INPUT --- */
-        #input-container { 
+        .typing-indicator {
+            align-self: flex-start;
+            background: var(--mimi-bubble);
+            padding: 12px 16px;
+            border-radius: 15px;
+            display: none;
+            gap: 4px;
+            align-items: center;
+        }
+        .typing-indicator.active { display: flex; }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: var(--text-main);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        #input-container {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             box-sizing: border-box;
-            display: flex; 
-            padding: 12px 15px; 
-            background: var(--bg-input); 
-            border-top: 1px solid var(--border-color); 
-            gap: 10px; 
+            display: flex;
+            padding: 12px 15px;
+            background: var(--bg-input);
+            border-top: 1px solid var(--border-color);
+            gap: 10px;
             z-index: 101;
         }
-        
-        input { 
-            flex: 1; 
-            padding: 12px; 
-            border-radius: 8px; 
-            border: 1px solid var(--input-border); 
-            background: var(--input-bg); 
-            color: var(--text-main); 
-            outline: none; 
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--input-border);
+            background: var(--input-bg);
+            color: var(--text-main);
+            outline: none;
             font-size: 16px;
         }
 
-        button { 
-            background: var(--btn-bg); 
-            color: white; 
-            border: none; 
-            padding: 10px 16px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
+        button {
+            background: var(--btn-bg);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
         }
         button:active { opacity: 0.8; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
@@ -190,10 +210,15 @@
         </div>
         <button onclick="limparMemoria()">🧹 Limpar</button>
     </header>
-    
+
     <div id="chat-container"></div>
 
-    <!-- ORBE HOLOGRÁFICO COM ANÉIS ORBITAIS -->
+    <!-- Indicador de digitação -->
+    <div class="typing-indicator" id="typingIndicator">
+        <span></span><span></span><span></span>
+    </div>
+
+    <!-- ORBE HOLOGRÁFICO -->
     <div id="orb-container-fixo">
         <div class="orb-wrapper" id="orbWrapper">
             <div class="orbital-ring ring-1"></div>
@@ -201,15 +226,15 @@
             <div id="hologram-orb"></div>
         </div>
     </div>
-    
+
     <div id="input-container">
         <button id="micBtn" title="Falar com a Mimi">🎤</button>
         <input type="text" id="userInput" placeholder="Escreva algo ou use o microfone..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
-        <button onclick="enviarMensagem()">Enviar</button>
+        <button id="sendBtn" onclick="enviarMensagem()">Enviar</button>
     </div>
 
     <script>
-        // 1. Identificação e Memória
+        // ─── 1. IDENTIFICAÇÃO E MEMÓRIA ───
         let nomeUsuario = localStorage.getItem('mimi_usuario');
         if (!nomeUsuario) {
             nomeUsuario = prompt("Como posso te chamar?");
@@ -217,76 +242,146 @@
         }
         document.getElementById('userDisplay').textContent = nomeUsuario;
 
-        let historicoConversa = JSON.parse(localStorage.getItem('mimi_historico')) || [];
-        
+        // Carrega histórico com segurança
+        let historicoConversa = [];
+        try {
+            const salvo = localStorage.getItem('mimi_historico');
+            if (salvo) historicoConversa = JSON.parse(salvo);
+            if (!Array.isArray(historicoConversa)) historicoConversa = [];
+        } catch (e) {
+            console.error("Erro ao carregar histórico:", e);
+            historicoConversa = [];
+        }
+
+        // Limita a 50 mensagens no localStorage
+        const MAX_MSG_LOCAL = 50;
+        if (historicoConversa.length > MAX_MSG_LOCAL) {
+            historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
+        }
+
         const chatContainer = document.getElementById('chat-container');
         const orbWrapper = document.getElementById('orbWrapper');
         const orb = document.getElementById('hologram-orb');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const sendBtn = document.getElementById('sendBtn');
 
-        // Carregar mensagens salvas ao abrir
+        // Renderiza mensagens salvas
         historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
 
-        // 2. Lógica do Microfone
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'pt-BR';
-        const micBtn = document.getElementById('micBtn');
+        // ─── 2. MICROFONE ───
+        let recognition = null;
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'pt-BR';
+            recognition.interimResults = false;
 
-        micBtn.onclick = () => {
-            try {
-                recognition.start();
-                micBtn.style.background = '#ef4444';
-                orbWrapper.classList.add('listening');
-            } catch (e) {
-                console.log("Reconhecimento já iniciado.");
-            }
-        };
+            const micBtn = document.getElementById('micBtn');
 
-        recognition.onresult = (event) => {
-            const texto = event.results[0][0].transcript;
-            document.getElementById('userInput').value = texto;
-            micBtn.style.background = '';
-            orbWrapper.classList.remove('listening');
-            enviarMensagem();
-        };
+            micBtn.onclick = () => {
+                try {
+                    recognition.start();
+                    micBtn.style.background = '#ef4444';
+                    orbWrapper.classList.add('listening');
+                } catch (e) {
+                    console.log("Reconhecimento já iniciado.");
+                }
+            };
 
-        recognition.onerror = () => {
-            micBtn.style.background = '';
-            orbWrapper.classList.remove('listening');
-        };
+            recognition.onresult = (event) => {
+                const texto = event.results[0][0].transcript;
+                document.getElementById('userInput').value = texto;
+                micBtn.style.background = '';
+                orbWrapper.classList.remove('listening');
+                enviarMensagem();
+            };
 
-        recognition.onend = () => {
-            micBtn.style.background = '';
-            orbWrapper.classList.remove('listening');
-        };
+            recognition.onerror = () => {
+                micBtn.style.background = '';
+                orbWrapper.classList.remove('listening');
+            };
 
-        // 3. Envio e Salvamento
+            recognition.onend = () => {
+                micBtn.style.background = '';
+                orbWrapper.classList.remove('listening');
+            };
+        } else {
+            document.getElementById('micBtn').style.display = 'none';
+        }
+
+        // ─── 3. ENVIO E SALVAMENTO ───
         async function enviarMensagem() {
             const input = document.getElementById('userInput');
             const texto = input.value.trim();
             if (!texto) return;
 
+            // Desabilita botão durante envio
+            sendBtn.disabled = true;
+
             adicionarMensagem(texto, 'user');
             salvarNoHistorico('user', texto);
             input.value = '';
 
+            // Mostra indicador de digitação
+            typingIndicator.classList.add('active');
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
             try {
+                // Envia só as últimas 10 mensagens pro servidor
+                const historicoParaEnviar = historicoConversa.slice(-10);
+
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mensagem: texto, historico: historicoConversa, nomeUsuario: nomeUsuario })
+                    body: JSON.stringify({
+                        mensagem: texto,
+                        historico: historicoParaEnviar,
+                        nomeUsuario: nomeUsuario
+                    })
                 });
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
                 const data = await res.json();
-                adicionarMensagem(data.resposta, 'mimi');
-                salvarNoHistorico('mimi', data.resposta);
-                falar(data.resposta);
-            } catch (e) { 
-                adicionarMensagem("Erro de conexão.", 'mimi'); 
+
+                typingIndicator.classList.remove('active');
+
+                if (data.resposta) {
+                    adicionarMensagem(data.resposta, 'mimi');
+                    salvarNoHistorico('mimi', data.resposta);
+                    falar(data.resposta);
+                } else {
+                    adicionarMensagem("Recebi uma resposta vazia do servidor.", 'mimi');
+                }
+
+            } catch (e) {
+                typingIndicator.classList.remove('active');
+                console.error("Erro na comunicação:", e);
+                adicionarMensagem("❌ Erro de conexão com a Mimi. Tente novamente.", 'mimi');
+            } finally {
+                sendBtn.disabled = false;
             }
         }
 
         function salvarNoHistorico(remetente, texto) {
-            historicoConversa.push({ remetente, texto });
-            localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
+            historicoConversa.push({ remetente, texto, timestamp: Date.now() });
+
+            // Mantém só as últimas 50 mensagens
+            if (historicoConversa.length > MAX_MSG_LOCAL) {
+                historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
+            }
+
+            try {
+                localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
+            } catch (e) {
+                console.error("Erro ao salvar no localStorage:", e);
+                // Se estourar o limite do localStorage, limpa o mais antigo
+                if (e.name === 'QuotaExceededError') {
+                    historicoConversa = historicoConversa.slice(-20);
+                    localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
+                }
+            }
         }
 
         function adicionarMensagem(texto, remetente) {
@@ -297,26 +392,35 @@
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // 4. Síntese de Voz com Reação Holográfica Baseada em Tamanho/Pulsação
+        // ─── 4. SÍNTESE DE VOZ ───
         function falar(texto) {
             if (!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
 
-            const ut = new SpeechSynthesisUtterance(texto);
+            // Remove emojis e markdown básico pra fala ficar natural
+            const textoLimpo = texto
+                .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
+                .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
+                .replace(/[\u{1F680}-\u{1F6FF}]/gu, '')
+                .replace(/[\u{1F1E0}-\u{1F1FF}]/gu, '')
+                .replace(/```[\s\S]*?```/g, ' código ')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1');
+
+            const ut = new SpeechSynthesisUtterance(textoLimpo);
             ut.lang = 'pt-BR';
-            
-            // Simulação dinâmica de batimento enquanto fala
+            ut.rate = 1.1;
+
             let intervaloSacudir;
             ut.onstart = () => {
                 orbWrapper.classList.add('pulsing');
-                // Faz o orbe pulsar suavemente de tamanho baseando-se no tempo de fala
                 let expandir = true;
                 intervaloSacudir = setInterval(() => {
-                    orb.style.transform = expandir ? 'scale(1.2)' : 'scale(1.0)';
+                    orb.style.transform = expandir ? 'scale(1.15)' : 'scale(1.0)';
                     expandir = !expandir;
-                }, 250);
+                }, 280);
             };
-            
+
             ut.onend = () => {
                 orbWrapper.classList.remove('pulsing');
                 clearInterval(intervaloSacudir);
