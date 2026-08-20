@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { exec } = require('child_process');
@@ -113,7 +114,7 @@ ${usuarioAtual} diz: "${mensagemTrim}"
 `;
 
        const response = await ai.models.generateContent({
-    model: 'gemini-flash-latest',  // ← Sempre atual!
+   model: 'gemini-2.5-flash',
     contents: prompt,
 });
 
