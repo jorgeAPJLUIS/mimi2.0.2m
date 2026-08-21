@@ -199,4 +199,4 @@ class UserProfile {
     }
 }
 
-module.exports = UserProfile;s
+module.exports = UserProfile;

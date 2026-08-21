@@ -39,7 +39,12 @@
         "notasDaMimi": "Esposa do Jorge. Só mencione se o Jorge puxar o assunto."
       }
     },
-    "ultimasInteracoes": [],
+    "ultimasInteracoes": [
+      {
+        "timestamp": "2026-08-20T22:28:43.315Z",
+        "mensagem": "Mimi, crie um arquivo chamado memoria_jorge.json dentro da pasta knowledge e salve nele um objeto JSON com meus gostos atuais e um objetivo de vida que você se lembra que eu tenho."
+      }
+    ],
     "notasGerais": {}
   }
 }
