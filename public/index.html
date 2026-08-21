@@ -329,7 +329,7 @@
                 // Envia só as últimas 10 mensagens pro servidor
                 const historicoParaEnviar = historicoConversa.slice(-10);
 
-                const res = await fetch('/api/chat', {
+                const res = await fetch('https://mimi2-0-2m.onrender.com/api/chat',  {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
