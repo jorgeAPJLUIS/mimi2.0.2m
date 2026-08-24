@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenAI } = require('@google/genai');
@@ -19,6 +20,20 @@ app.post('/api/chat', async (req, res) => {
 
         if (!mensagem || !mensagem.trim()) {
             return res.json({ resposta: "Mandou vazio, Chefe?" });
+        }
+        const texto = mensagem.toLowerCase();
+
+        // NOVO: Atalho para aprender/anotar direto pelo chat web/celular
+        if (texto.startsWith('aprenda que ') || texto.startsWith('anote sobre mim ')) {
+            const novoDado = texto.replace('aprenda que ', '').replace('anote sobre mim ', '').trim();
+            const chaveUnica = 'nota_' + Date.now(); 
+            
+            // Salva no profile.json usando a mesma lógica do seu UserProfile
+            memoriaMimi.salvarNotaGeral(chaveUnica, novoDado);
+            
+            return res.json({ 
+                resposta: `Gravado com sucesso no meu banco de dados pessoal, Jorge! 🧠\nAgora guardei que: "${novoDado}".` 
+            });
         }
 
         const mensagemTrim = mensagem.trim();

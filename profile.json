@@ -43,8 +43,27 @@
       {
         "timestamp": "2026-08-20T22:28:43.315Z",
         "mensagem": "Mimi, crie um arquivo chamado memoria_jorge.json dentro da pasta knowledge e salve nele um objeto JSON com meus gostos atuais e um objetivo de vida que você se lembra que eu tenho."
+      },
+      {
+        "timestamp": "2026-08-24T02:16:37.987Z",
+        "mensagem": ""
+      },
+      {
+        "timestamp": "2026-08-24T02:24:46.063Z",
+        "mensagem": "aprenda que eu gosto de programar em Node.js"
+      },
+      {
+        "timestamp": "2026-08-24T02:25:04.552Z",
+        "mensagem": "do que eu gosto"
+      },
+      {
+        "timestamp": "2026-08-24T02:54:14.784Z",
+        "mensagem": "aprenda que estou testando pelo celular agora"
       }
     ],
-    "notasGerais": {}
+    "notasGerais": {
+      "nota_1787538286074": "eu gosto de programar em node.js",
+      "nota_1787540054789": "estou testando pelo celular agora"
+    }
   }
 }

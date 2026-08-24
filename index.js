@@ -1,3 +1,4 @@
+require('dotenv').config();
 const readline = require('readline');
 const UserProfile = require('./userProfile');
 const { exec } = require('child_process');
