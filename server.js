@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenAI } = require('@google/genai');
-const memoriaMimi = require('./userProfile');
-
+const UserProfile = require('./userProfile');
+const memoriaMimi = new UserProfile();
 const app = express();
 app.use(cors());
 app.use(express.json());
