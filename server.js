@@ -7,12 +7,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ADICIONE ESTA LINHA ABAIXO:
-app.use(express.static(__dirname)); 
+// Servir a pasta atual para o Render mostrar o site na raiz
+app.use(express.static(__dirname));
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-
 
 app.post('/api/chat', async (req, res) => {
     try {
@@ -52,7 +50,7 @@ ${usuarioAtual} diz: "${mensagemTrim}"
 `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash',
             contents: prompt,
         });
 
