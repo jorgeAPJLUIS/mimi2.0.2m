@@ -7,7 +7,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ADICIONE ESTA LINHA ABAIXO:
+app.use(express.static(__dirname)); 
+
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+
 
 app.post('/api/chat', async (req, res) => {
     try {
