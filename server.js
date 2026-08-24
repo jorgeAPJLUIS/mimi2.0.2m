@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenAI } = require('@google/genai');
-const { Groq } = require('groq-sdk'); // <-- 1. Importa a Groq
+const { Groq } = require('groq-sdk');
 const UserProfile = require('./userProfile');
 const memoriaMimi = new UserProfile();
 const app = express();
@@ -13,7 +13,7 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); // <-- 2. Inicializa a Groq
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 app.post('/api/chat', async (req, res) => {
     try {
@@ -71,11 +71,11 @@ ${usuarioAtual} diz: "${mensagemTrim}"
 
         let textoResposta = "Desculpe, não consegui processar.";
 
-        // --- 3. SISTEMA DE FALLBACK INTELIGENTE (Gemini -> Groq) ---
+        // --- SISTEMA DE FALLBACK BLINDADO (Gemini 3.5-flash -> Groq) ---
         try {
-            console.log("Tentando via Gemini...");
+            console.log("Tentando via Gemini (3.5-flash)...");
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3.5-flash',
                 contents: prompt,
             });
 
@@ -86,24 +86,27 @@ ${usuarioAtual} diz: "${mensagemTrim}"
             }
 
         } catch (geminiError) {
-            // Verifica se é erro 429 (Too Many Requests) ou estouro de cota
-            const isError429 = geminiError.status === 429 || 
-                               (geminiError.message && geminiError.message.includes('429')) ||
-                               (geminiError.message && geminiError.message.toLowerCase().includes('quota'));
+            const erroStr = JSON.stringify(geminiError) + " " + (geminiError.message || "");
+            console.warn("⚠️ Erro capturado no Gemini:", erroStr);
 
-            if (isError429) {
-                console.warn("⚠️ Cota do Gemini esgotada (429). Alternando automaticamente para a Groq (Plano B)...");
+            // Verifica se é erro 429 ou estouro de cota de forma ampla
+            if (erroStr.includes('429') || erroStr.includes('RESOURCE_EXHAUSTED') || erroStr.includes('quota')) {
+                console.warn("🔄 Limite do Gemini esgotado. Alternando instantaneamente para a Groq (Plano B)...");
                 
-                // Chama a Groq com o Llama 3 como backup
-                const groqResponse = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: prompt }],
-                    model: 'llama-3.3-70b-versatile',
-                });
+                try {
+                    const groqResponse = await groq.chat.completions.create({
+                        messages: [{ role: 'user', content: prompt }],
+                        model: 'llama-3.3-70b-versatile',
+                    });
 
-                textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema ao processar pelo plano de backup.";
+                    textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
+                } catch (groqError) {
+                    console.error("❌ Erro também na Groq:", groqError.message);
+                    textoResposta = "Tanto o Gemini quanto a Groq recusaram a requisição no momento devido aos limites.";
+                }
             } else {
-                // Se for outro erro que não seja 429, joga adiante
-                throw geminiError;
+                // Se for qualquer outro tipo de erro
+                textoResposta = `Erro na IA: ${geminiError.message}`;
             }
         }
         // -------------------------------------------------------------
