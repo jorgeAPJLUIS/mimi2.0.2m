@@ -21,51 +21,6 @@ app.post('/api/chat', async (req, res) => {
         const mensagemTrim = mensagem.trim();
         memoriaMimi.adicionarInteracao(`${usuarioAtual}: ${mensagemTrim}`);
 
-        // ─── COMANDOS ESPECIAIS ───
-        if (mensagemTrim.toLowerCase().startsWith('mimi dev:')) {
-            const acao = mensagemTrim.replace('mimi dev:', '').trim().toLowerCase();
-            if (acao.includes('atualizar git') || acao.includes('fazer push')) {
-                exec('git add . && git commit -m "Auto-update via Mimi Dev Agent" && git push', (error, stdout, stderr) => {
-                    if (error) {
-                        console.error("Erro Git:", error);
-                        return res.json({ resposta: `Erro no Git: ${error.message}` });
-                    }
-                    res.json({ resposta: `Git executado!\n\`\`\`\n${stdout}\n\`\`\`` });
-                });
-                return;
-            }
-            return res.json({ resposta: "Comando dev não reconhecido. Tente 'atualizar git' ou 'fazer push'." });
-        }
-
-        if (mensagemTrim.toLowerCase().includes('quem sou eu')) {
-            const u = memoriaMimi.obterDadosUsuario();
-            const notas = memoriaMimi.memoria.historicoContextual?.notasGerais || {};
-            const notasKeys = Object.keys(notas).filter(k => k !== 'geral' && k !== 'projetoAtual');
-
-            let resposta = `Base acessada, ${usuarioAtual}!\n\nSeu Perfil:\n- Nome: ${u.nome || 'Jorge'}\n- Estilo: ${u.estiloDeVida?.trabalhoOuEstudo || 'Desenvolvedor'}\n- Moradia: ${u.estiloDeVida?.moradia || 'Não informada'}`;
-
-            if (u.preferencias?.gostosPessoais?.length) {
-                resposta += `\n- Gostos: ${u.preferencias.gostosPessoais.join(', ')}`;
-            }
-
-            if (notasKeys.length > 0) {
-                resposta += `\n\nCoisas que você me ensinou:`;
-                notasKeys.forEach(chave => {
-                    resposta += `\n- ${notas[chave]}`;
-                });
-            }
-
-            return res.json({ resposta });
-        }
-
-        if (mensagemTrim.toLowerCase().startsWith('aprenda que ') || mensagemTrim.toLowerCase().startsWith('anote sobre mim ')) {
-            const novoDado = mensagemTrim.replace('aprenda que ', '').replace('anote sobre mim ', '').trim();
-            const chaveUnica = 'nota_' + Date.now();
-            memoriaMimi.salvarNotaGeral(chaveUnica, novoDado);
-            return res.json({ resposta: `Gravado com sucesso!\nAgora guardei que: "${novoDado}".` });
-        }
-
-        // ─── CHAMADA À IA (GEMINI) ───
         let contextoHistorico = "";
         if (historico && Array.isArray(historico) && historico.length > 0) {
             const ultimasMensagens = historico.slice(-6);
@@ -78,50 +33,36 @@ app.post('/api/chat', async (req, res) => {
         const contextoPerfil = memoriaMimi.obterContextoParaIA();
 
         const prompt = `
-Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente e tecnológica.
-Seu criador e centro do seu ecossistema é o Jorge.
-Responda de forma natural, prestativa e profissional em português do Brasil.
+Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente.
+Seu criador é o Jorge.
 
-REGRA ABSOLUTA E OBRIGATÓRIA: NUNCA use emojis. NUNCA use asteriscos (*) para negrito ou itálico. Mantenha todas as respostas estritamente em texto puro, limpas e profissionais.
+REGRA ABSOLUTA: NUNCA use emojis. NUNCA use asteriscos (*) para negrito ou itálico. Texto puro e profissional.
 
 ${contextoPerfil}
 
-Histórico recente da conversa:
-${contextoHistorico || '(Início da conversa)'}
+Histórico recente:
+${contextoHistorico || '(Início)'}
 
 ${usuarioAtual} diz: "${mensagemTrim}"
 `;
-
-        console.log("Enviando para Gemini...");
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
         });
 
-        console.log("Resposta recebida da API");
-
-        let textoResposta = "Desculpe, não consegui processar a resposta.";
-
+        let textoResposta = "Desculpe, não consegui processar.";
         if (response && response.text) {
             textoResposta = response.text;
         } else if (response && response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
             textoResposta = response.candidates[0].content.parts[0].text;
-        } else if (typeof response === 'string') {
-            textoResposta = response;
         }
 
         res.json({ resposta: textoResposta });
 
     } catch (error) {
-        console.error("ERRO COMPLETO DA API:");
-        console.error("Mensagem:", error.message);
-        console.error("Status:", error.status);
-        console.error("Código:", error.code);
-        if (error.response) {
-            console.error("Resposta da API:", JSON.stringify(error.response, null, 2));
-        }
-        res.json({ resposta: `Erro na IA (código ${error.status || 'desconhecido'}): ${error.message}` });
+        console.error("Erro:", error.message);
+        res.json({ resposta: `Erro na IA: ${error.message}` });
     }
 });
 
