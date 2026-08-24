@@ -26,6 +26,7 @@
             flex-direction: column;
             height: 100vh;
             overflow: hidden;
+            box-sizing: border-box;
         }
 
         header {
@@ -44,34 +45,32 @@
             gap: 12px;
         }
 
+        /* ORBE POSICIONADO ACIMA DO INPUT */
         #orb-container-fixo {
-            position: fixed;
-            bottom: 75px;
-            left: 0;
             width: 100%;
-            pointer-events: none;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 8px 0;
+            background: var(--bg-main);
             z-index: 100;
         }
 
         .orb-wrapper {
             position: relative;
-            width: 90px;
-            height: 90px;
+            width: 70px;
+            height: 70px;
             display: flex;
             justify-content: center;
             align-items: center;
-            pointer-events: auto;
         }
 
         #hologram-orb {
-            width: 65px;
-            height: 65px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, #0369a1 100%);
-            box-shadow: 0 0 25px rgba(56, 189, 248, 0.8), inset 0 0 12px rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.8);
             transition: transform 0.1s ease, background 0.3s ease;
             cursor: pointer;
             z-index: 2;
@@ -86,15 +85,15 @@
         }
 
         .ring-1 {
-            width: 82px;
-            height: 82px;
+            width: 62px;
+            height: 62px;
             border-color: rgba(56, 189, 248, 0.6);
             animation-duration: 6s;
         }
 
         .ring-2 {
-            width: 98px;
-            height: 98px;
+            width: 76px;
+            height: 76px;
             border-style: dotted;
             border-color: rgba(14, 165, 233, 0.3);
             animation-duration: 12s;
@@ -103,7 +102,7 @@
 
         .listening #hologram-orb {
             background: radial-gradient(circle, #ef4444 0%, #dc2626 60%, #991b1b 100%) !important;
-            box-shadow: 0 0 35px rgba(239, 68, 68, 0.9), inset 0 0 15px rgba(255, 255, 255, 0.9) !important;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.9), inset 0 0 12px rgba(255, 255, 255, 0.9) !important;
         }
 
         .listening .orbital-ring {
@@ -124,7 +123,6 @@
         #chat-container {
             flex: 1;
             padding: 15px;
-            padding-bottom: 140px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -132,7 +130,7 @@
         }
 
         .message {
-            max-width: 80%;
+            max-width: 85%;
             padding: 12px 16px;
             border-radius: 15px;
             line-height: 1.4;
@@ -144,16 +142,17 @@
         .typing-indicator {
             align-self: flex-start;
             background: var(--mimi-bubble);
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 15px;
             display: none;
             gap: 4px;
             align-items: center;
+            margin-bottom: 5px;
         }
         .typing-indicator.active { display: flex; }
         .typing-indicator span {
-            width: 8px;
-            height: 8px;
+            width: 7px;
+            height: 7px;
             background: var(--text-main);
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
@@ -166,38 +165,38 @@
         }
 
         #input-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
             width: 100%;
             box-sizing: border-box;
             display: flex;
-            padding: 12px 15px;
+            padding: 10px 12px;
             background: var(--bg-input);
             border-top: 1px solid var(--border-color);
-            gap: 10px;
-            z-index: 101;
+            gap: 8px;
+            align-items: center;
         }
 
         input {
             flex: 1;
-            padding: 12px;
+            padding: 10px 12px;
             border-radius: 8px;
             border: 1px solid var(--input-border);
             background: var(--input-bg);
             color: var(--text-main);
             outline: none;
-            font-size: 16px;
+            font-size: 15px;
+            min-width: 0;
         }
 
         button {
             background: var(--btn-bg);
             color: white;
             border: none;
-            padding: 10px 16px;
+            padding: 10px 14px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
+            white-space: nowrap;
         }
         button:active { opacity: 0.8; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -218,7 +217,7 @@
         <span></span><span></span><span></span>
     </div>
 
-    <!-- ORBE HOLOGRÁFICO -->
+    <!-- ORBE HOLOGRÁFICO FIXO ACIMA DO INPUT -->
     <div id="orb-container-fixo">
         <div class="orb-wrapper" id="orbWrapper">
             <div class="orbital-ring ring-1"></div>
@@ -229,12 +228,11 @@
 
     <div id="input-container">
         <button id="micBtn" title="Falar com a Mimi">🎤</button>
-        <input type="text" id="userInput" placeholder="Escreva algo ou use o microfone..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
+        <input type="text" id="userInput" placeholder="Escreva algo..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
         <button id="sendBtn" onclick="enviarMensagem()">Enviar</button>
     </div>
 
     <script>
-        // ─── 1. IDENTIFICAÇÃO E MEMÓRIA ───
         let nomeUsuario = localStorage.getItem('mimi_usuario');
         if (!nomeUsuario) {
             nomeUsuario = prompt("Como posso te chamar?");
@@ -242,18 +240,15 @@
         }
         document.getElementById('userDisplay').textContent = nomeUsuario;
 
-        // Carrega histórico com segurança
         let historicoConversa = [];
         try {
             const salvo = localStorage.getItem('mimi_historico');
             if (salvo) historicoConversa = JSON.parse(salvo);
             if (!Array.isArray(historicoConversa)) historicoConversa = [];
         } catch (e) {
-            console.error("Erro ao carregar histórico:", e);
             historicoConversa = [];
         }
 
-        // Limita a 50 mensagens no localStorage
         const MAX_MSG_LOCAL = 50;
         if (historicoConversa.length > MAX_MSG_LOCAL) {
             historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
@@ -265,10 +260,8 @@
         const typingIndicator = document.getElementById('typingIndicator');
         const sendBtn = document.getElementById('sendBtn');
 
-        // Renderiza mensagens salvas
         historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
 
-        // ─── 2. MICROFONE ───
         let recognition = null;
         if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
             recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -282,9 +275,7 @@
                     recognition.start();
                     micBtn.style.background = '#ef4444';
                     orbWrapper.classList.add('listening');
-                } catch (e) {
-                    console.log("Reconhecimento já iniciado.");
-                }
+                } catch (e) {}
             };
 
             recognition.onresult = (event) => {
@@ -308,28 +299,23 @@
             document.getElementById('micBtn').style.display = 'none';
         }
 
-        // ─── 3. ENVIO E SALVAMENTO ───
         async function enviarMensagem() {
             const input = document.getElementById('userInput');
             const texto = input.value.trim();
             if (!texto) return;
 
-            // Desabilita botão durante envio
             sendBtn.disabled = true;
 
             adicionarMensagem(texto, 'user');
             salvarNoHistorico('user', texto);
             input.value = '';
 
-            // Mostra indicador de digitação
             typingIndicator.classList.add('active');
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
             try {
-                // Envia só as últimas 10 mensagens pro servidor
                 const historicoParaEnviar = historicoConversa.slice(-10);
-const res = await fetch('/api/chat', {
-                
+                const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -339,12 +325,9 @@ const res = await fetch('/api/chat', {
                     })
                 });
 
-                if (!res.ok) {
-                    throw new Error(`HTTP ${res.status}`);
-                }
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                 const data = await res.json();
-
                 typingIndicator.classList.remove('active');
 
                 if (data.resposta) {
@@ -352,13 +335,12 @@ const res = await fetch('/api/chat', {
                     salvarNoHistorico('mimi', data.resposta);
                     falar(data.resposta);
                 } else {
-                    adicionarMensagem("Recebi uma resposta vazia do servidor.", 'mimi');
+                    adicionarMensagem("Resposta vazia do servidor.", 'mimi');
                 }
 
             } catch (e) {
                 typingIndicator.classList.remove('active');
-                console.error("Erro na comunicação:", e);
-                adicionarMensagem("❌ Erro de conexão com a Mimi. Tente novamente.", 'mimi');
+                adicionarMensagem("Erro de conexão com a Mimi.", 'mimi');
             } finally {
                 sendBtn.disabled = false;
             }
@@ -366,22 +348,12 @@ const res = await fetch('/api/chat', {
 
         function salvarNoHistorico(remetente, texto) {
             historicoConversa.push({ remetente, texto, timestamp: Date.now() });
-
-            // Mantém só as últimas 50 mensagens
             if (historicoConversa.length > MAX_MSG_LOCAL) {
                 historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
             }
-
             try {
                 localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
-            } catch (e) {
-                console.error("Erro ao salvar no localStorage:", e);
-                // Se estourar o limite do localStorage, limpa o mais antigo
-                if (e.name === 'QuotaExceededError') {
-                    historicoConversa = historicoConversa.slice(-20);
-                    localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
-                }
-            }
+            } catch (e) {}
         }
 
         function adicionarMensagem(texto, remetente) {
@@ -392,12 +364,10 @@ const res = await fetch('/api/chat', {
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // ─── 4. SÍNTESE DE VOZ ───
         function falar(texto) {
             if (!window.speechSynthesis) return;
             window.speechSynthesis.cancel();
 
-            // Remove emojis e markdown básico pra fala ficar natural
             const textoLimpo = texto
                 .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
                 .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
