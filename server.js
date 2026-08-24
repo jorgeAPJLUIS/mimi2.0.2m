@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 // Servir a pasta atual para o Render mostrar o site na raiz
-app.use(express.static(__dirname));
+app.use(express.static('public'));
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
