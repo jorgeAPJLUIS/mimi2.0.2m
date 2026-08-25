@@ -93,7 +93,8 @@ ${usuarioAtual} diz: "${mensagemTrim}"
             try {
                 const groqResponse = await groq.chat.completions.create({
                     messages: [{ role: 'user', content: prompt }],
-                    model:'gemma2-9b-it',
+                    model:'openai/gpt-oss-20b',
+                    
                 });
 
                 textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
