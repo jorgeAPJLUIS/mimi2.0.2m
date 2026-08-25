@@ -93,7 +93,7 @@ ${usuarioAtual} diz: "${mensagemTrim}"
             try {
                 const groqResponse = await groq.chat.completions.create({
                     messages: [{ role: 'user', content: prompt }],
-                    model: 'llama3-8b-8192',
+                    model:'llama-3.3-70b-versatile',
                 });
 
                 textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
