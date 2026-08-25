@@ -69,9 +69,9 @@ ${contextoHistorico || '(Início)'}
 ${usuarioAtual} diz: "${mensagemTrim}"
 `;
 
-        let textoResposta = "Desculpe, não consegui processar.";
+        let textoResposta = "";
 
-        // --- SISTEMA DE FALLBACK BLINDADO (Gemini 3.5-flash -> Groq) ---
+        // --- SISTEMA DE FALLBACK AUTOMÁTICO E INFALÍVEL (Gemini 3.5-flash -> Groq) ---
         try {
             console.log("Tentando via Gemini (3.5-flash)...");
             const response = await ai.models.generateContent({
@@ -83,30 +83,24 @@ ${usuarioAtual} diz: "${mensagemTrim}"
                 textoResposta = response.text;
             } else if (response && response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
                 textoResposta = response.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error("Resposta do Gemini veio sem texto.");
             }
 
         } catch (geminiError) {
-            const erroStr = JSON.stringify(geminiError) + " " + (geminiError.message || "");
-            console.warn("⚠️ Erro capturado no Gemini:", erroStr);
+            console.warn("⚠️ Gemini falhou/esgotou cota. Redirecionando AUTOMATICAMENTE para a Groq...");
+            
+            try {
+                const groqResponse = await groq.chat.completions.create({
+                    messages: [{ role: 'user', content: prompt }],
+                    model: 'llama-3.3-70b-versatile',
+                });
 
-            // Verifica se é erro 429 ou estouro de cota de forma ampla
-            if (erroStr.includes('429') || erroStr.includes('RESOURCE_EXHAUSTED') || erroStr.includes('quota')) {
-                console.warn("🔄 Limite do Gemini esgotado. Alternando instantaneamente para a Groq (Plano B)...");
-                
-                try {
-                    const groqResponse = await groq.chat.completions.create({
-                        messages: [{ role: 'user', content: prompt }],
-                        model: 'llama-3.3-70b-versatile',
-                    });
-
-                    textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
-                } catch (groqError) {
-                    console.error("❌ Erro também na Groq:", groqError.message);
-                    textoResposta = "Tanto o Gemini quanto a Groq recusaram a requisição no momento devido aos limites.";
-                }
-            } else {
-                // Se for qualquer outro tipo de erro
-                textoResposta = `Erro na IA: ${geminiError.message}`;
+                textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
+                console.log("✅ Resposta gerada com sucesso via Groq!");
+            } catch (groqError) {
+                console.error("❌ Erro grave: Gemini e Groq falharam:", groqError.message);
+                textoResposta = "Desculpe, Jorge! Nossas duas IAs estão temporariamente indisponíveis no momento.";
             }
         }
         // -------------------------------------------------------------
@@ -114,8 +108,8 @@ ${usuarioAtual} diz: "${mensagemTrim}"
         res.json({ resposta: textoResposta });
 
     } catch (error) {
-        console.error("Erro geral:", error.message);
-        res.json({ resposta: `Erro na IA: ${error.message}` });
+        console.error("Erro geral no servidor:", error.message);
+        res.json({ resposta: `Erro interno no servidor: ${error.message}` });
     }
 });
 
