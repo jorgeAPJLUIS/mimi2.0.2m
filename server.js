@@ -14,8 +14,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inicializa a API do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Banco de dados em memória para armazenar o histórico por usuário
-consthistoricosUsuarios = {};
+// Banco de dados em memória corrigido para armazenar o histórico por usuário
+const historicosUsuarios = {};
 
 // Prompt de sistema da Mimi
 const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva.`;
@@ -52,11 +52,16 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
     return response.data.choices[0].message.content;
 }
 
-// Rota para buscar o histórico do usuário
+// Rota para buscar o histórico do usuário (Retorna JSON limpo)
 app.get('/api/historico/:nome', (req, res) => {
-    const nome = decodeURIComponent(req.params.nome);
-    const historico = historicoseUsuarios[nome] || [];
-    res.json({ historico });
+    try {
+        const nome = decodeURIComponent(req.params.nome);
+        const historico = historicosUsuarios[nome] || [];
+        res.json({ historico });
+    } catch (error) {
+        console.error("Erro ao buscar histórico:", error);
+        res.json({ historico: [] });
+    }
 });
 
 // Rota principal de chat
@@ -70,10 +75,10 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // Recupera ou inicializa o histórico do usuário específico
-        if (!historicoseUsuarios[usuario]) {
-            historicoseUsuarios[usuario] = [];
+        if (!historicosUsuarios[usuario]) {
+            historicosUsuarios[usuario] = [];
         }
-        const historicoAtual = historicoseUsuarios[usuario];
+        const historicoAtual = historicosUsuarios[usuario];
 
         // Converte o histórico para o formato aceito pelo SDK do Gemini
         const historicoFormatado = historicoAtual.map(h => ({
