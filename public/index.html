@@ -267,7 +267,8 @@
     <div id="input-container">
         <button id="micBtn" title="Falar com a Mimi">🎤</button>
         <input type="text" id="userInput" placeholder="Insira comando..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
-        <button id="sendBtn" onclick="enviarMensagem()">EX
+        <button id="sendBtn" onclick="enviarMensagem()">ENVIAR</button>
+    </div>
 
     <script>
         let nomeUsuario = localStorage.getItem('mimi_usuario');
@@ -310,7 +311,7 @@
             micBtn.onclick = () => {
                 try {
                     recognition.start();
-                    micBtn.style.background = '#ef4444';
+                    micBtn.style.background = '#ff0055';
                     orbWrapper.classList.add('listening');
                 } catch (e) {}
             };
