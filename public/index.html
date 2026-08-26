@@ -3,31 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mimi 2.0 - Núcleo Holográfico</title>
+    <title>Mimi 2.0 - Núcleo Holográfico Cyberpunk</title>
     <style>
         :root[data-theme="dark"] {
-            --bg-main: #0f172a;
-            --bg-header: #1e293b;
-            --bg-input: #1e293b;
-            --border-color: #334155;
-            --text-main: #f8fafc;
-            --user-bubble: #3b82f6;
-            --mimi-bubble: #334155;
-            --input-bg: #0f172a;
-            --input-border: #475569;
-            --btn-bg: #3b82f6;
+            --bg-main: #05050a;
+            --bg-header: #0a0a16;
+            --bg-input: #0a0a16;
+            --border-color: #00f0ff55;
+            --text-main: #00ffcc;
+            --user-bubble: #00f0ff22;
+            --user-border: #00f0ff;
+            --mimi-bubble: #101026;
+            --mimi-border: #00ff66;
+            --input-bg: #030308;
+            --input-border: #00ff6677;
+            --btn-bg: #00ff66;
+            --btn-text: #05050a;
+            --neon-glow: 0 0 10px rgba(0, 255, 102, 0.4);
+            --neon-cyan: 0 0 10px rgba(0, 240, 255, 0.4);
         }
-       body {
-            font-family: sans-serif;
+
+        body {
+            font-family: 'Courier New', Courier, monospace, sans-serif;
             background: var(--bg-main);
             color: var(--text-main);
             margin: 0;
             display: flex;
             flex-direction: column;
-            height: 100dvh; /* Mudou de 100vh para 100dvh */
+            height: 100dvh;
             overflow: hidden;
             box-sizing: border-box;
         }
+
         header {
             background: var(--bg-header);
             padding: 12px 20px;
@@ -37,12 +44,15 @@
             align-items: center;
             z-index: 10;
             flex-shrink: 0;
+            box-shadow: var(--neon-cyan);
         }
 
         .header-left {
             display: flex;
             align-items: center;
             gap: 12px;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
 
         #chat-container {
@@ -51,34 +61,53 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
+            background-image: linear-gradient(rgba(0, 255, 102, 0.02) 1px, transparent 1px);
+            background-size: 100% 4px;
         }
 
         .message {
             max-width: 85%;
             padding: 12px 16px;
-            border-radius: 15px;
+            border-radius: 6px;
             line-height: 1.4;
             word-wrap: break-word;
+            font-size: 14px;
         }
-        .user { background: var(--user-bubble); align-self: flex-end; }
-        .mimi { background: var(--mimi-bubble); align-self: flex-start; }
+
+        .user { 
+            background: var(--user-bubble); 
+            border: 1px solid var(--user-border);
+            color: #00f0ff;
+            align-self: flex-end; 
+            box-shadow: var(--neon-cyan);
+        }
+
+        .mimi { 
+            background: var(--mimi-bubble); 
+            border: 1px solid var(--mimi-border);
+            color: #00ff66;
+            align-self: flex-start; 
+            box-shadow: var(--neon-glow);
+        }
 
         .typing-indicator {
             align-self: flex-start;
             background: var(--mimi-bubble);
+            border: 1px solid var(--mimi-border);
             padding: 10px 14px;
-            border-radius: 15px;
+            border-radius: 6px;
             display: none;
             gap: 4px;
             align-items: center;
             margin-bottom: 5px;
+            box-shadow: var(--neon-glow);
         }
         .typing-indicator.active { display: flex; }
         .typing-indicator span {
             width: 7px;
             height: 7px;
-            background: var(--text-main);
+            background: var(--mimi-border);
             border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
@@ -113,8 +142,8 @@
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: radial-gradient(circle, #38bdf8 0%, #0284c7 60%, #0369a1 100%);
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.8), inset 0 0 8px rgba(255, 255, 255, 0.8);
+            background: radial-gradient(circle, #00ff66 0%, #008f3f 60%, #004d22 100%);
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.9), inset 0 0 8px rgba(255, 255, 255, 0.8);
             transition: transform 0.1s ease, background 0.3s ease;
             cursor: pointer;
             z-index: 2;
@@ -123,7 +152,7 @@
         .orbital-ring {
             position: absolute;
             border-radius: 50%;
-            border: 1px dashed rgba(56, 189, 248, 0.4);
+            border: 1px dashed rgba(0, 255, 102, 0.5);
             animation: girarOrbital 8s linear infinite;
             pointer-events: none;
         }
@@ -131,7 +160,7 @@
         .ring-1 {
             width: 52px;
             height: 52px;
-            border-color: rgba(56, 189, 248, 0.6);
+            border-color: rgba(0, 240, 255, 0.7);
             animation-duration: 6s;
         }
 
@@ -139,23 +168,23 @@
             width: 64px;
             height: 64px;
             border-style: dotted;
-            border-color: rgba(14, 165, 233, 0.3);
+            border-color: rgba(0, 255, 102, 0.4);
             animation-duration: 12s;
             animation-direction: reverse;
         }
 
         .listening #hologram-orb {
-            background: radial-gradient(circle, #ef4444 0%, #dc2626 60%, #991b1b 100%) !important;
-            box-shadow: 0 0 20px rgba(239, 68, 68, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.9) !important;
+            background: radial-gradient(circle, #ff0055 0%, #b3003b 60%, #660022 100%) !important;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.9), inset 0 0 10px rgba(255, 255, 255, 0.9) !important;
         }
 
         .listening .orbital-ring {
-            border-color: rgba(239, 68, 68, 0.7);
+            border-color: rgba(255, 0, 85, 0.8);
             animation-duration: 2s;
         }
 
         .pulsing .orbital-ring {
-            border-color: rgba(34, 197, 94, 0.8);
+            border-color: rgba(0, 240, 255, 0.9);
             animation-duration: 3s;
         }
 
@@ -180,25 +209,34 @@
         #userInput {
             flex: 1;
             padding: 10px 12px;
-            border-radius: 8px;
+            border-radius: 6px;
             border: 1px solid var(--input-border);
             background: var(--input-bg);
             color: var(--text-main);
             outline: none;
-            font-size: 15px;
+            font-size: 14px;
+            font-family: inherit;
             min-width: 0;
+        }
+
+        #userInput:focus {
+            border-color: #00ff66;
+            box-shadow: var(--neon-glow);
         }
 
         #input-container button {
             background: var(--btn-bg);
-            color: white;
+            color: var(--btn-text);
             border: none;
             padding: 10px 14px;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 13px;
+            font-family: inherit;
             flex-shrink: 0;
+            box-shadow: var(--neon-glow);
+            transition: opacity 0.2s;
         }
         #input-container button:active { opacity: 0.8; }
         #input-container button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -207,9 +245,9 @@
 <body>
     <header>
         <div class="header-left">
-            <div>Mimi 2.0 | <span id="userDisplay"></span></div>
+            <div>MIMI.SYS // <span id="userDisplay"></span></div>
         </div>
-        <button onclick="limparMemoria()" style="flex-shrink:0;">🧹 Limpar</button>
+        <button onclick="limparMemoria()" style="flex-shrink:0;">🧹 PURGE</button>
     </header>
 
     <div id="chat-container"></div>
@@ -228,9 +266,8 @@
 
     <div id="input-container">
         <button id="micBtn" title="Falar com a Mimi">🎤</button>
-        <input type="text" id="userInput" placeholder="Escreva algo..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
-        <button id="sendBtn" onclick="enviarMensagem()">Enviar</button>
-    </div>
+        <input type="text" id="userInput" placeholder="Insira comando..." onkeypress="if(event.key === 'Enter') enviarMensagem()">
+        <button id="sendBtn" onclick="enviarMensagem()">EX
 
     <script>
         let nomeUsuario = localStorage.getItem('mimi_usuario');
