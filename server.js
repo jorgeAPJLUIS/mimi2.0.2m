@@ -10,7 +10,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Inicializa o SDK da Google Gen AI (Certifique-se de que a variável GEMINI_API_KEY está configurada no Render)
-const ai = new GoogleGenAI();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Caminho para salvar a memória dos usuários de forma persistente no servidor
 const MEMORY_FILE = path.join(__dirname, 'memoria_usuarios.json');
