@@ -8,22 +8,25 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// LIBERA OS ARQUIVOS DO FRONTEND (HTML, CSS, JS) DA PASTA PUBLIC
+// Libera os arquivos estáticos do frontend (pasta public)
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Inicializa a API do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// Banco de dados em memória para armazenar o histórico por usuário
+consthistoricosUsuarios = {};
+
 // Prompt de sistema da Mimi
 const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva.`;
 
-// FUNÇÃO DE FALLBACK PARA O GROK/GROQ
+// Função de Fallback para o Grok/Groq
 async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
     const grokApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY || process.env.XAI_API_KEY; 
     
     if (!grokApiKey) {
         console.warn("⚠️ Aviso: Chave da API do Grok/Groq não encontrada no ambiente do Render.");
-        throw new Error("O sistema de IA está temporariamente indisponível (limite de cota atingido e fallback indisponível).");
+        throw new Error("O sistema de IA está temporariamente indisponível.");
     }
 
     const mensagens = [
@@ -49,25 +52,39 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
     return response.data.choices[0].message.content;
 }
 
-// ROTA PRINCIPAL DE CHAT COM SISTEMA DE FALLBACK AUTOMÁTICO
+// Rota para buscar o histórico do usuário
+app.get('/api/historico/:nome', (req, res) => {
+    const nome = decodeURIComponent(req.params.nome);
+    const historico = historicoseUsuarios[nome] || [];
+    res.json({ historico });
+});
+
+// Rota principal de chat
 app.post('/api/chat', async (req, res) => {
     try {
-        console.log("📥 Dados recebidos no body:", req.body);
-        const { message, history } = req.body;
+        const { mensagem, nomeUsuario } = req.body;
+        const usuario = nomeUsuario || 'Convidado';
 
-        if (!message) {
+        if (!mensagem) {
             return res.status(400).json({ error: 'A mensagem não pode estar vazia.' });
         }
 
-        const historicoFormatado = history ? history.map(h => ({
-            role: h.role === 'user' ? 'user' : 'model',
-            parts: [{ text: h.content }]
-        })) : [];
+        // Recupera ou inicializa o histórico do usuário específico
+        if (!historicoseUsuarios[usuario]) {
+            historicoseUsuarios[usuario] = [];
+        }
+        const historicoAtual = historicoseUsuarios[usuario];
+
+        // Converte o histórico para o formato aceito pelo SDK do Gemini
+        const historicoFormatado = historicoAtual.map(h => ({
+            role: h.remetente === 'user' ? 'user' : 'model',
+            parts: [{ text: h.texto }]
+        }));
 
         let respostaTexto = "";
 
         try {
-            console.log("Tentando processar com o Gemini...");
+            console.log(`[${usuario}] Tentando processar com o Gemini...`);
             const chat = ai.chats.create({
                 model: 'gemini-3.5-flash',
                 history: historicoFormatado,
@@ -76,16 +93,20 @@ app.post('/api/chat', async (req, res) => {
                 }
             });
 
-            const result = await chat.sendMessage({ message });
+            const result = await chat.sendMessage({ message: mensagem });
             respostaTexto = result.text;
 
         } catch (geminiError) {
             console.warn("⚠️ Gemini falhou. Acionando o Grok de emergência...", geminiError);
-            respostaTexto = await chamarGrok(SYSTEM_PROMPT, historicoFormatado, message);
+            respostaTexto = await chamarGrok(SYSTEM_PROMPT, historicoFormatado, mensagem);
             respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/fallback)*";
         }
 
-        res.json({ reply: respostaTexto });
+        // Salva as mensagens no histórico do usuário
+        historicoAtual.push({ texto: mensagem, remetente: 'user' });
+        historicoAtual.push({ texto: respostaTexto, remetente: 'mimi' });
+
+        res.json({ resposta: respostaTexto });
 
     } catch (error) {
         console.error("Erro detalhado na API de Chat:", error);
