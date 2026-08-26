@@ -1,42 +1,60 @@
-const sqlite3 = require('sqlite3').verbose();
+const fs = require('fs');
 const path = require('path');
 
 class UserProfile {
     constructor() {
-        const dbPath = path.resolve(__dirname, 'mimi.db');
-        this.db = new sqlite3.Database(dbPath, (err) => {
-            if (err) {
-                console.error('Erro ao conectar ao SQLite:', err.message);
-            } else {
-                console.log('Banco de dados SQLite conectado com sucesso.');
-                this.inicializarTabelas();
-            }
-        });
+        this.filePath = path.resolve(__dirname, 'mimi.json');
+        this.inicializarArquivo();
     }
 
-    inicializarTabelas() {
-        this.db.run(`CREATE TABLE IF NOT EXISTS notas (
-            chave TEXT PRIMARY KEY,
-            valor TEXT
-        )`);
+    inicializarArquivo() {
+        if (!fs.existsSync(this.filePath)) {
+            const dadosIniciais = {
+                notas: {},
+                interacoes: []
+            };
+            fs.writeFileSync(this.filePath, JSON.stringify(dadosIniciais, null, 2), 'utf8');
+        }
+    }
 
-        this.db.run(`CREATE TABLE IF NOT EXISTS interacoes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            texto TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
+    lerDados() {
+        try {
+            if (!fs.existsSync(this.filePath)) {
+                return { notas: {}, interacoes: [] };
+            }
+            const conteudo = fs.readFileSync(this.filePath, 'utf8');
+            return JSON.parse(conteudo);
+        } catch (error) {
+            console.error('Erro ao ler mimi.json:', error);
+            return { notas: {}, interacoes: [] };
+        }
+    }
+
+    salvarDados(dados) {
+        try {
+            fs.writeFileSync(this.filePath, JSON.stringify(dados, null, 2), 'utf8');
+        } catch (error) {
+            console.error('Erro ao salvar mimi.json:', error);
+        }
     }
 
     salvarNotaGeral(chave, valor) {
-        this.db.run(`INSERT OR REPLACE INTO notas (chave, valor) VALUES (?, ?)`, [chave, valor], (err) => {
-            if (err) console.error('Erro ao salvar nota:', err.message);
-        });
+        const dados = this.lerDados();
+        dados.notas[chave] = valor;
+        this.salvarDados(dados);
     }
 
     adicionarInteracao(interacao) {
-        this.db.run(`INSERT INTO interacoes (texto) VALUES (?)`, [interacao], (err) => {
-            if (err) console.error('Erro ao salvar interação:', err.message);
+        const dados = this.lerDados();
+        dados.interacoes.push({
+            texto: interacao,
+            timestamp: new Date().toISOString()
         });
+        // Mantém apenas as últimas 100 interações para não inchar o arquivo
+        if (dados.interacoes.length > 100) {
+            dados.interacoes = dados.interacoes.slice(-100);
+        }
+        this.salvarDados(dados);
     }
 
     obterIdentidadeMimi() {
@@ -45,15 +63,17 @@ class UserProfile {
         };
     }
 
+    // Como agora é síncrono via JSON, podemos retornar diretamente no callback
     obterContextoParaIA(callback) {
-        // Como o SQLite é assíncrono, buscamos as notas do banco para montar o contexto
-        this.db.all(`SELECT valor FROM notas`, [], (err, rows) => {
-            if (err || !rows || rows.length === 0) {
-                return callback("Notas e memórias salvas: Nenhuma registrada ainda.");
-            }
-            const notasTexto = rows.map(r => `- ${r.valor}`).join('\n');
-            callback(`Notas e memórias salvas sobre o Jorge e projetos:\n${notasTexto}`);
-        });
+        const dados = this.lerDados();
+        const chaves = Object.keys(dados.notas);
+        
+        if (chaves.length === 0) {
+            return callback("Notas e memórias salvas: Nenhuma registrada ainda.");
+        }
+
+        const notasTexto = chaves.map(chave => `- ${dados.notas[chave]}`).join('\n');
+        callback(`Notas e memórias salvas sobre o Jorge e projetos:\n${notasTexto}`);
     }
 }
 
