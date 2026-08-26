@@ -14,19 +14,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inicializa a API do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Banco de dados em memória corrigido para armazenar o histórico por usuário
+// Banco de dados em memória para armazenar o histórico por usuário
 const historicosUsuarios = {};
 
-// Prompt de sistema da Mimi
 // Prompt de sistema da Mimi com o seu nome gravado
 const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. O seu criador e dono é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva!`;
 
-// Função de Fallback para o Grok/Groq
-async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
-    const grokApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY || process.env.XAI_API_KEY; 
+// Função de Fallback 100% ajustada para a Groq
+async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
+    const groqApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY; 
     
-    if (!grokApiKey) {
-        console.warn("⚠️ Aviso: Chave da API do Grok/Groq não encontrada no ambiente do Render.");
+    if (!groqApiKey) {
+        console.warn("⚠️ Aviso: Chave da API da Groq não encontrada no ambiente do Render.");
         throw new Error("O sistema de IA está temporariamente indisponível.");
     }
 
@@ -39,21 +38,22 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
         { role: "user", content: mensagemAtual }
     ];
 
-    const response = await axios.post('https://api.x.ai/v1/chat/completions', {
-        model: 'grok-beta', 
+    // URL e modelo oficiais da Groq (Llama 3.3)
+    const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+        model: 'llama-3.3-70b-versatile', 
         messages: mensagens,
         temperature: 0.7
     }, {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${grokApiKey.trim()}`
+            'Authorization': `Bearer ${groqApiKey.trim()}`
         }
     });
 
     return response.data.choices[0].message.content;
 }
 
-// Rota para buscar o histórico do usuário (Retorna JSON limpo)
+// Rota para buscar o histórico do usuário
 app.get('/api/historico/:nome', (req, res) => {
     try {
         const nome = decodeURIComponent(req.params.nome);
@@ -75,13 +75,11 @@ app.post('/api/chat', async (req, res) => {
             return res.status(400).json({ error: 'A mensagem não pode estar vazia.' });
         }
 
-        // Recupera ou inicializa o histórico do usuário específico
         if (!historicosUsuarios[usuario]) {
             historicosUsuarios[usuario] = [];
         }
         const historicoAtual = historicosUsuarios[usuario];
 
-        // Converte o histórico para o formato aceito pelo SDK do Gemini
         const historicoFormatado = historicoAtual.map(h => ({
             role: h.remetente === 'user' ? 'user' : 'model',
             parts: [{ text: h.texto }]
@@ -103,12 +101,11 @@ app.post('/api/chat', async (req, res) => {
             respostaTexto = result.text;
 
         } catch (geminiError) {
-            console.warn("⚠️ Gemini falhou. Acionando o Grok de emergência...", geminiError);
-            respostaTexto = await chamarGrok(SYSTEM_PROMPT, historicoFormatado, mensagem);
-            respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/fallback)*";
+            console.warn("⚠️ Gemini falhou. Acionando a Groq de emergência...", geminiError.message);
+            respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
+            respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/Groq)*";
         }
 
-        // Salva as mensagens no histórico do usuário
         historicoAtual.push({ texto: mensagem, remetente: 'user' });
         historicoAtual.push({ texto: respostaTexto, remetente: 'mimi' });
 
