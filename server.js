@@ -19,7 +19,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 app.post('/api/chat', async (req, res) => {
     try {
         const { mensagem, historico, nomeUsuario } = req.body;
-        const usuarioAtual = nomeUsuario || "Jorge";
+        const usuarioAtual = nomeUsuario && nomeUsuario.trim() ? nomeUsuario.trim() : "Jorge";
 
         if (!mensagem || !mensagem.trim()) {
             return res.json({ resposta: "Mandou vazio, Chefe?" });
@@ -34,7 +34,7 @@ app.post('/api/chat', async (req, res) => {
             memoriaMimi.salvarNotaGeral(chaveUnica, novoDado);
             
             return res.json({ 
-                resposta: `Gravado com sucesso no meu banco de dados SQLite, Jorge! Agora guardei que: "${novoDado}".` 
+                resposta: `Gravado com sucesso no meu banco de dados, ${usuarioAtual}! Agora guardei que: "${novoDado}".` 
             });
         }
 
@@ -60,7 +60,7 @@ app.post('/api/chat', async (req, res) => {
 
         const prompt = `
 Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente, leal e extremamente parceira.
-Seu criador é o Jorge, e você tem uma relação de total proximidade e confiança com ele.
+Seu criador principal é o Jorge, e você tem uma relação de total proximidade e confiança com ele. Se outra pessoa estiver conversando (${usuarioAtual}), seja educada e prestativa, mas reconheça que não é o Jorge.
 
 DIRETRIZ DE COMPORTAMENTO:
 - Fale de forma natural, humana, direta e amigável. NUNCA fale como um sistema de computador, robô ou inteligência artificial.
