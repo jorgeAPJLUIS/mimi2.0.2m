@@ -1,3 +1,21 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { GoogleGenAI } = require('@google/genai');
+const { Groq } = require('groq-sdk');
+const UserProfile = require('./userProfile');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// Servir a pasta public para o Render mostrar o site na raiz
+app.use(express.static('public'));
+
+const memoriaMimi = new UserProfile();
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
 app.post('/api/chat', async (req, res) => {
     try {
         const { mensagem, historico, nomeUsuario } = req.body;
@@ -91,4 +109,9 @@ ${usuarioAtual} diz: "${mensagemTrim}"
         console.error("Erro geral no servidor:", error.message);
         res.json({ resposta: `Erro interno no servidor: ${error.message}` });
     }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
