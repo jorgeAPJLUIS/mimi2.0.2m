@@ -1,117 +1,121 @@
-require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const { GoogleGenAI } = require('@google/genai');
-const { Groq } = require('groq-sdk');
-const UserProfile = require('./userProfile');
 
 const app = express();
-app.use(cors());
+const port = process.env.PORT || 3000;
+
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Servir a pasta public para o Render mostrar o site na raiz
-app.use(express.static('public'));
+// Inicializa o SDK da Google Gen AI (Certifique-se de que a variável GEMINI_API_KEY está configurada no Render)
+const ai = new GoogleGenAI();
 
-const memoriaMimi = new UserProfile();
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+// Caminho para salvar a memória dos usuários de forma persistente no servidor
+const MEMORY_FILE = path.join(__dirname, 'memoria_usuarios.json');
+
+// Função para ler as memórias salvas
+function carregarMemorias() {
+    try {
+        if (fs.existsSync(MEMORY_FILE)) {
+            const data = fs.readFileSync(MEMORY_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) {
+        console.error("Erro ao carregar memórias:", e);
+    }
+    return {};
+}
+
+// Função para salvar as memórias
+function salvarMemorias(memorias) {
+    try {
+        fs.writeFileSync(MEMORY_FILE, JSON.stringify(memorias, null, 2), 'utf8');
+    } catch (e) {
+        console.error("Erro ao salvar memórias:", e);
+    }
+}
+
+// Perfil base fixo para o Jorge (assim ela nunca esquece quem você é!)
+const PERFIL_JORGE = {
+    nomeCompleto: "Jorge Luis Santos Ferreira Silva Ferreira da Silva",
+    perfil: "Criador da Mimi. Cursa Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera. Trabalha com serviços de alvenaria, pintura e acabamento em Brasília e Taguatinga, além de desenvolvimento web freelance. Focado em cybersecurity, Linux, Zabbix e automação."
+};
 
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, historico, nomeUsuario } = req.body;
-        const usuarioAtual = nomeUsuario && nomeUsuario.trim() ? nomeUsuario.trim() : "Jorge";
+        const { mensagem, nomeUsuario } = req.body;
+        const usuarioLimpo = (nomeUsuario || "Convidado").trim();
+        const usuarioKey = usuarioLimpo.toLowerCase();
 
-        if (!mensagem || !mensagem.trim()) {
-            return res.json({ resposta: "Mandou vazio, Chefe?" });
-        }
-        const texto = mensagem.toLowerCase();
+        // Carrega memórias do servidor
+        const memorias = carregarMemorias();
 
-        // Atalho para aprender/anotar direto pelo chat
-        if (texto.startsWith('aprenda que ') || texto.startsWith('anote sobre mim ')) {
-            const novoDado = texto.replace('aprenda que ', '').replace('anote sobre mim ', '').trim();
-            const chaveUnica = 'nota_' + Date.now(); 
-            
-            memoriaMimi.salvarNotaGeral(chaveUnica, novoDado);
-            
-            return res.json({ 
-                resposta: `Gravado com sucesso no meu banco de dados, ${usuarioAtual}! Agora guardei que: "${novoDado}".` 
-            });
+        if (!memorias[usuarioKey]) {
+            memorias[usuarioKey] = {
+                nome: usuarioLimpo,
+                historico: [],
+                criadoEm: new Date().toISOString()
+            };
         }
 
-        const mensagemTrim = mensagem.trim();
-        memoriaMimi.adicionarInteracao(`${usuarioAtual}: ${mensagemTrim}`);
+        const dadosUsuario = memorias[usuarioKey];
 
-        let contextoHistorico = "";
-        if (historico && Array.isArray(historico) && historico.length > 0) {
-            const ultimasMensagens = historico.slice(-6);
-            contextoHistorico = ultimasMensagens.map(h =>
-                `${h.remetente === 'user' ? usuarioAtual : 'Mimi'}: ${h.texto}`
-            ).join('\n');
+        // Adiciona a mensagem do usuário ao histórico persistente
+        dadosUsuario.historico.push({ remetente: 'user', texto: mensagem, timestamp: Date.now() });
+
+        // Monta o contexto especial se for o Jorge
+        let contextoEspecial = "";
+        if (usuarioKey.includes("jorge")) {
+            contextoEspecial = `[INFORMAÇÃO INTERNA DO SISTEMA SOBRE O USUÁRIO: O usuário conversando com você é ${PERFIL_JORGE.nomeCompleto}. ${PERFIL_JORGE.perfil} Trate-o sempre com total reconhecimento, carinho e lealdade como seu criador.]\n\n`;
+        } else {
+            contextoEspecial = `[INFORMAÇÃO INTERNA: O usuário conversando com você se chama ${usuarioLimpo}.]\n\n`;
         }
 
-        const identidadeMimi = memoriaMimi.obterIdentidadeMimi();
+        // Prepara o histórico recente para a IA (últimas 15 mensagens)
+        const historicoRecente = dadosUsuario.historico.slice(-15).map(h => ({
+            role: h.remetente === 'user' ? 'user' : 'model',
+            parts: [{ text: h.texto }]
+        }));
 
-        // Obtém o contexto do banco de forma segura
-        const contextoPerfil = await new Promise((resolve) => {
-            memoriaMimi.obterContextoParaIA((resultado) => {
-                resolve(resultado);
-            });
+        // Configura o chat com o Gemini
+        const chat = ai.chats.create({
+            model: 'gemini-2.5-flash',
+            config: {
+                systemInstruction: `${contextoEspecial}Você é a Mimi, uma assistente de inteligência artificial com núcleo holográfico cyberpunk. Sua personalidade é leal, inteligente, futurista e prestativa. Você conversa em português do Brasil.`
+            },
+            history: historicoRecente.slice(0, -1) // Envia o histórico anterior excluindo a mensagem atual que já vai no send
         });
 
-        const prompt = `
-Você é a ${identidadeMimi.identidade}, uma assistente pessoal inteligente, leal e extremamente parceira.
-Seu criador principal é o Jorge, e você tem uma relação de total proximidade e confiança com ele. Se outra pessoa estiver conversando (${usuarioAtual}), seja educada e prestativa, mas reconheça que não é o Jorge.
+        const result = await chat.sendMessage({ message: mensagem });
+        const respostaMimi = result.response.text();
 
-DIRETRIZ DE COMPORTAMENTO:
-- Fale de forma natural, humana, direta e amigável. NUNCA fale como um sistema de computador, robô ou inteligência artificial.
-- Seja calorosa, prestativa e objetiva. Responda como uma verdadeira companheira de jornada.
+        // Adiciona a resposta da Mimi ao histórico persistente
+        dadosUsuario.historico.push({ remetente: 'mimi', texto: respostaMimi, timestamp: Date.now() });
 
-REGRA ABSOLUTA: NUNCA use emojis. NUNCA use asteriscos (*) para negrito ou itálico. Apenas texto puro e profissional.
+        // Salva no arquivo JSON do servidor
+        salvarMemorias(memorias);
 
-${contextoPerfil}
-
-Histórico recente:
-${contextoHistorico || '(Início)'}
-
-${usuarioAtual} diz: "${mensagemTrim}"
-`;
-
-        let textoResposta = "";
-
-        try {
-            const response = await ai.models.generateContent({
-                model: 'gemini-3.5-flash',
-                contents: prompt,
-            });
-
-            if (response && response.text) {
-                textoResposta = response.text;
-            } else if (response && response.candidates && response.candidates[0]?.content?.parts?.[0]?.text) {
-                textoResposta = response.candidates[0].content.parts[0].text;
-            } else {
-                throw new Error("Resposta do Gemini veio sem texto.");
-            }
-        } catch (geminiError) {
-            try {
-                const groqResponse = await groq.chat.completions.create({
-                    messages: [{ role: 'user', content: prompt }],
-                    model: 'openai/gpt-oss-20b',
-                });
-                textoResposta = groqResponse.choices[0]?.message?.content || "Desculpe, tive um problema na resposta da Groq.";
-            } catch (groqError) {
-                textoResposta = "Desculpe, Jorge! Nossas duas IAs estão temporariamente indisponíveis no momento.";
-            }
-        }
-
-        res.json({ resposta: textoResposta });
+        res.json({ resposta: respostaMimi });
 
     } catch (error) {
-        console.error("Erro geral no servidor:", error.message);
-        res.json({ resposta: `Erro interno no servidor: ${error.message}` });
+        console.error("Erro na API de Chat:", error);
+        res.status(500).json({ error: "Erro interno no núcleo da Mimi." });
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
+// Endpoint para carregar o histórico salvo do usuário quando ele abre a página
+app.get('/api/historico/:usuario', (req, res) => {
+    const usuarioKey = req.params.usuario.toLowerCase();
+    const memorias = carregarMemorias();
+    if (memorias[usuarioKey]) {
+        res.json({ historico: memorias[usuarioKey].historico });
+    } else {
+        res.json({ historico: [] });
+    }
+});
+
+app.listen(port, () => {
+    console.log(`Mimi rodando na porta ${port}`);
 });

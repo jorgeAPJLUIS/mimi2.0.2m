@@ -264,7 +264,7 @@
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
             <div id="voiceBadge" class="voice-mode-badge">VOZ: OFF</div>
-            <button onclick="limparMemoria()" style="flex-shrink:0;">🧹 PURGE</button>
+            <button onclick="trocarUsuario()" style="flex-shrink:0;">🔄 TROCAR</button>
         </div>
     </header>
 
@@ -289,7 +289,6 @@
     </div>
 
     <script>
-        // Usa sessionStorage para pedir o nome toda vez que a aba for aberta do zero
         let nomeUsuario = sessionStorage.getItem('mimi_usuario');
         if (!nomeUsuario || !nomeUsuario.trim()) {
             nomeUsuario = prompt("Como posso te chamar?");
@@ -301,18 +300,6 @@
         document.getElementById('userDisplay').textContent = nomeUsuario;
 
         let historicoConversa = [];
-        try {
-            const salvo = sessionStorage.getItem('mimi_historico');
-            if (salvo) historicoConversa = JSON.parse(salvo);
-            if (!Array.isArray(historicoConversa)) historicoConversa = [];
-        } catch (e) {
-            historicoConversa = [];
-        }
-
-        const MAX_MSG_LOCAL = 50;
-        if (historicoConversa.length > MAX_MSG_LOCAL) {
-            historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
-        }
 
         const chatContainer = document.getElementById('chat-container');
         const orbWrapper = document.getElementById('orbWrapper');
@@ -322,7 +309,22 @@
         const micBtn = document.getElementById('micBtn');
         const voiceBadge = document.getElementById('voiceBadge');
 
-        historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
+        // Carrega o histórico salvo diretamente do servidor do Render para este usuário
+        async function carregarHistoricoServidor() {
+            try {
+                const res = await fetch(`/api/historico/${encodeURIComponent(nomeUsuario)}`);
+                const data = await res.json();
+                if (data.historico && Array.isArray(data.historico)) {
+                    historicoConversa = data.historico;
+                    chatContainer.innerHTML = '';
+                    historicoConversa.forEach(msg => adicionarMensagem(msg.texto, msg.remetente));
+                }
+            } catch (e) {
+                console.error("Erro ao carregar histórico do servidor:", e);
+            }
+        }
+
+        carregarHistoricoServidor();
 
         let modoVozAtivo = false;
         let recognition = null;
@@ -406,20 +408,17 @@
 
             sendBtn.disabled = true;
             adicionarMensagem(texto, 'user');
-            salvarNoHistorico('user', texto);
             input.value = '';
 
             typingIndicator.classList.add('active');
             chatContainer.scrollTop = chatContainer.scrollHeight;
 
             try {
-                const historicoParaEnviar = historicoConversa.slice(-10);
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         mensagem: texto,
-                        historico: historicoParaEnviar,
                         nomeUsuario: nomeUsuario
                     })
                 });
@@ -431,7 +430,6 @@
 
                 if (data.resposta) {
                     adicionarMensagem(data.resposta, 'mimi');
-                    salvarNoHistorico('mimi', data.resposta);
                     falar(data.resposta, () => {
                         aguardandoRespostaDaIA = false;
                         if (modoVozAtivo) {
@@ -452,16 +450,6 @@
             } finally {
                 sendBtn.disabled = false;
             }
-        }
-
-        function salvarNoHistorico(remetente, texto) {
-            historicoConversa.push({ remetente, texto, timestamp: Date.now() });
-            if (historicoConversa.length > MAX_MSG_LOCAL) {
-                historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
-            }
-            try {
-                sessionStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
-            } catch (e) {}
         }
 
         function adicionarMensagem(texto, remetente) {
@@ -515,12 +503,9 @@
             window.speechSynthesis.speak(ut);
         }
 
-        function limparMemoria() {
-            if (confirm("Deseja limpar o histórico de conversas?")) {
-                sessionStorage.removeItem('mimi_historico');
-                historicoConversa = [];
-                chatContainer.innerHTML = '';
-            }
+        function trocarUsuario() {
+            sessionStorage.removeItem('mimi_usuario');
+            location.reload();
         }
     </script>
 </body>
