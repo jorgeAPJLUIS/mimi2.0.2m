@@ -1,61 +1,29 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
+const cors = require('cors');
+const axios = require('axios'); // Garantido o uso do axios para o fallback
 const { GoogleGenAI } = require('@google/genai');
-const axios = require('axios'); // Garanta que o axios está instalado no package.json
 
 const app = express();
-const port = process.env.PORT || 3000;
-
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
 
-process.on('uncaughtException', (err) => {
-    console.error('ERRO CRITICO NAO CAPTURADO:', err);
-});
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('REJEICAO NAO TRATADA:', reason);
-});
-
-// Inicializa o SDK da Google Gen AI
+// Inicializa a API do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Caminho para salvar a memória dos usuários de forma persistente no servidor
-const MEMORY_FILE = path.join(__dirname, 'memoria_usuarios.json');
+// Prompt de sistema da Mimi
+const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva.`;
 
-function carregarMemorias() {
-    try {
-        if (fs.existsSync(MEMORY_FILE)) {
-            const data = fs.readFileSync(MEMORY_FILE, 'utf8');
-            return JSON.parse(data || '{}');
-        }
-    } catch (e) {
-        console.error("Erro ao carregar memórias:", e);
-    }
-    return {};
-}
-
-function salvarMemorias(memorias) {
-    try {
-        fs.writeFileSync(MEMORY_FILE, JSON.stringify(memorias, null, 2), 'utf8');
-    } catch (e) {
-        console.error("Erro ao salvar memórias:", e);
-    }
-}
-
-const PERFIL_JORGE = {
-    nomeCompleto: "Jorge Luis Santos Ferreira Silva Ferreira da Silva",
-    perfil: "Criador da Mimi. Cursa Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera. Trabalha com serviços de alvenaria, pintura e acabamento em Brasília e Taguatinga, além de desenvolvimento web freelance. Focado em cybersecurity, Linux, Zabbix e automação."
-};
-
-// FUNÇÃO DE FALLBACK PARA O GROK (xAI)
+// FUNÇÃO DE FALLBACK PARA O GROK/GROQ (Ajustada para o nome que está no Render)
 async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
-    const grokApiKey = process.env.GROK_API_KEY;
+    // Procura a chave usando o nome exato que está no painel do Render (GROQ_API_KEY)
+    const grokApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY || process.env.XAI_API_KEY; 
+    
     if (!grokApiKey) {
-        throw new Error("GROK_API_KEY não configurada no ambiente.");
+        console.warn("⚠️ Aviso: Chave da API do Grok/Groq não encontrada no ambiente do Render.");
+        throw new Error("O sistema de IA está temporariamente indisponível (limite de cota atingido e fallback indisponível).");
     }
 
-    // Formata o histórico para o padrão OpenAI/Grok
+    // Formata o histórico para o padrão OpenAI / xAI
     const mensagens = [
         { role: "system", content: promptSistema },
         ...historicoFormatado.map(h => ({
@@ -66,92 +34,71 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
     ];
 
     const response = await axios.post('https://api.x.ai/v1/chat/completions', {
-        model: 'grok-beta', // ou o modelo grok padrão que você utiliza
+        model: 'grok-beta', 
         messages: mensagens,
         temperature: 0.7
     }, {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${grokApiKey}`
+            'Authorization': `Bearer ${grokApiKey.trim()}` // Remove espaços acidentais
         }
     });
 
     return response.data.choices[0].message.content;
 }
 
+// ROTA PRINCIPAL DE CHAT COM SISTEMA DE FALLBACK AUTOMÁTICO
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, nomeUsuario } = req.body;
-        const usuarioLimpo = (nomeUsuario || "Convidado").trim();
-        const usuarioKey = usuarioLimpo.toLowerCase();
+        const { message, history } = req.body;
 
-        const memorias = carregarMemorias();
-
-        if (!memorias[usuarioKey]) {
-            memorias[usuarioKey] = {
-                nome: usuarioLimpo,
-                historico: [],
-                criadoEm: new Date().toISOString()
-            };
+        if (!message) {
+            return res.status(400).json({ error: 'A mensagem não pode estar vazia.' });
         }
 
-        const dadosUsuario = memorias[usuarioKey];
-        dadosUsuario.historico.push({ remetente: 'user', texto: mensagem, timestamp: Date.now() });
+        // Formata o histórico recebido para o padrão do Gemini
+        const historicoFormatado = history ? history.map(h => ({
+            role: h.role === 'user' ? 'user' : 'model',
+            parts: [{ text: h.content }]
+        })) : [];
 
-        let contextoEstrangeiro = "";
-        if (usuarioKey.includes("jorge")) {
-            contextoEstrangeiro = `[NOTA DO SISTEMA: O usuário conversando com você é ${PERFIL_JORGE.nomeCompleto}. ${PERFIL_JORGE.perfil} Trate-o sempre com total reconhecimento, carinho e lealdade como seu criador.]\n\n`;
-        } else {
-            contextoEstrangeiro = `[NOTA DO SISTEMA: O usuário conversando com você se chama ${usuarioLimpo}.]\n\n`;
-        }
-
-        const historicoFormatado = dadosUsuario.historico.slice(-15).map(h => ({
-            role: h.remetente === 'user' ? 'user' : 'model',
-            parts: [{ text: h.texto }]
-        }));
-
-        let respostaMimi = "";
+        let respostaTexto = "";
 
         try {
-            // Tenta primariamente o Gemini
-            const response = await ai.models.generateContent({
+            // Tenta usar o Gemini primeiro
+            console.log("Tentando processar com o Gemini...");
+            const chat = ai.chats.create({
                 model: 'gemini-3.5-flash',
-                contents: [
-                    { role: 'user', parts: [{ text: contextoEstrangeiro + "Olá Mimi, vamos começar a conversa." }] },
-                    { role: 'model', parts: [{ text: "Entendido! Estou pronta e com meus sistemas ativados." }] },
-                    ...historicoFormatado
-                ]
+                history: historicoFormatado,
+                config: {
+                    systemInstruction: SYSTEM_PROMPT,
+                }
             });
-            respostaMimi = response.text();
+
+            const result = await chat.sendMessage({ message });
+            respostaTexto = result.text;
+
         } catch (geminiError) {
-            console.warn("⚠️ Gemini falhou (possível limite de cota/429). Acionando o **Grok** de emergência...", geminiError.message);
+            console.warn("⚠️ Gemini falhou (possível limite de cota/429 ou instabilidade). Acionando o Grok de emergência...", geminiError);
             
-            // Aciona o Grok automaticamente como fallback
-            const promptSistema = contextoEstrangeiro + "Você é a Mimi 2.0, uma assistente pessoal inteligente, gentil, carinhosa e conselheira universal.";
-            respostaMimi = await chamarGrok(promptSistema, historicoFormatado, mensagem);
+            // Se o Gemini falhar, ativa o fallback automático para o Grok
+            respostaTexto = await chamarGrok(SYSTEM_PROMPT, historicoFormatado, message);
+            respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/fallback)*";
         }
 
-        dadosUsuario.historico.push({ remetente: 'mimi', texto: respostaMimi, timestamp: Date.now() });
-        salvarMemorias(memorias);
-
-        res.json({ resposta: respostaMimi });
+        res.json({ reply: respostaTexto });
 
     } catch (error) {
         console.error("Erro detalhado na API de Chat (Geral/Fallback):", error);
-        res.status(500).json({ error: "Erro interno no núcleo da Mimi.", detalhes: error.message });
+        res.status(500).json({ 
+            error: 'Erro interno no servidor ao processar sua mensagem.', 
+            details: error.message 
+        });
     }
 });
 
-app.get('/api/historico/:usuario', (req, res) => {
-    const usuarioKey = req.params.usuario.toLowerCase();
-    const memorias = carregarMemorias();
-    if (memorias[usuarioKey]) {
-        res.json({ historico: memorias[usuarioKey].historico });
-    } else {
-        res.json({ historico: [] });
-    }
-});
-
-app.listen(port, () => {
-    console.log(`Servidor rodando na porta ${port}`);
+// Porta padrão do Render ou 10000 localmente
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
