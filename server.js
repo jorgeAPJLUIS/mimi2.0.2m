@@ -66,30 +66,30 @@ app.post('/api/chat', async (req, res) => {
         dadosUsuario.historico.push({ remetente: 'user', texto: mensagem, timestamp: Date.now() });
 
         // Monta o contexto especial se for o Jorge
-        let contextoEspecial = "";
+        let contextoEstrangeiro = "";
         if (usuarioKey.includes("jorge")) {
-            contextoEspecial = `[INFORMAÇÃO INTERNA DO SISTEMA SOBRE O USUÁRIO: O usuário conversando com você é ${PERFIL_JORGE.nomeCompleto}. ${PERFIL_JORGE.perfil} Trate-o sempre com total reconhecimento, carinho e lealdade como seu criador.]\n\n`;
+            contextoEstrangeiro = `[NOTA DO SISTEMA: O usuário conversando com você é ${PERFIL_JORGE.nomeCompleto}. ${PERFIL_JORGE.perfil} Trate-o sempre com total reconhecimento, carinho e lealdade como seu criador.]\n\n`;
         } else {
-            contextoEspecial = `[INFORMAÇÃO INTERNA: O usuário conversando com você se chama ${usuarioLimpo}.]\n\n`;
+            contextoEstrangeiro = `[NOTA DO SISTEMA: O usuário conversando com você se chama ${usuarioLimpo}.]\n\n`;
         }
 
-        // Prepara o histórico recente para a IA (últimas 15 mensagens)
-        const historicoRecente = dadosUsuario.historico.slice(-15).map(h => ({
+        // Prepara o histórico para o formato aceito pelo Gemini e adiciona a system instruction no início
+        const historicoFormatado = dadosUsuario.historico.slice(-15).map(h => ({
             role: h.remetente === 'user' ? 'user' : 'model',
             parts: [{ text: h.texto }]
         }));
 
-        // Configura o chat com o Gemini
-        const chat = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: `${contextoEspecial}Você é a Mimi, uma assistente de inteligência artificial com núcleo holográfico cyberpunk. Sua personalidade é leal, inteligente, futurista e prestativa. Você conversa em português do Brasil.`
-            },
-            history: historicoRecente.slice(0, -1) // Envia o histórico anterior excluindo a mensagem atual que já vai no send
+        // Insere a instrução de sistema na primeira mensagem ou usa o generateContent com histórico completo
+        const response = await ai.models.generateContent({
+            model: 'gemini-3.5-flash',
+            contents: [
+                { role: 'user', parts: [{ text: contextoEstrangeiro + "Olá Mimi, vamos começar a conversa." }] },
+                { role: 'model', parts: [{ text: "Entendido! Estou pronta e com meus sistemas ativados." }] },
+                ...historicoFormatado
+            ]
         });
 
-        const result = await chat.sendMessage({ message: mensagem });
-        const respostaMimi = result.response.text();
+        const respostaMimi = response.text();
 
         // Adiciona a resposta da Mimi ao histórico persistente
         dadosUsuario.historico.push({ remetente: 'mimi', texto: respostaMimi, timestamp: Date.now() });
@@ -100,22 +100,7 @@ app.post('/api/chat', async (req, res) => {
         res.json({ resposta: respostaMimi });
 
     } catch (error) {
-        console.error("Erro na API de Chat:", error);
-        res.status(500).json({ error: "Erro interno no núcleo da Mimi." });
+        console.error("Erro detalhado na API de Chat:", error);
+        res.status(500).json({ error: "Erro interno no núcleo da Mimi.", detalhes: error.message });
     }
-});
-
-// Endpoint para carregar o histórico salvo do usuário quando ele abre a página
-app.get('/api/historico/:usuario', (req, res) => {
-    const usuarioKey = req.params.usuario.toLowerCase();
-    const memorias = carregarMemorias();
-    if (memorias[usuarioKey]) {
-        res.json({ historico: memorias[usuarioKey].historico });
-    } else {
-        res.json({ historico: [] });
-    }
-});
-
-app.listen(port, () => {
-    console.log(`Mimi rodando na porta ${port}`);
 });
