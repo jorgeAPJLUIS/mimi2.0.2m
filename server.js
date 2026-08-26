@@ -52,6 +52,7 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
 // ROTA PRINCIPAL DE CHAT COM SISTEMA DE FALLBACK AUTOMÁTICO
 app.post('/api/chat', async (req, res) => {
     try {
+        console.log("📥 Dados recebidos no body:", req.body);
         const { message, history } = req.body;
 
         if (!message) {
