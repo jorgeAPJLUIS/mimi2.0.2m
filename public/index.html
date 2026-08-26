@@ -289,16 +289,20 @@
     </div>
 
     <script>
-        let nomeUsuario = localStorage.getItem('mimi_usuario');
-        if (!nomeUsuario) {
+        // Usa sessionStorage para pedir o nome toda vez que a aba for aberta do zero
+        let nomeUsuario = sessionStorage.getItem('mimi_usuario');
+        if (!nomeUsuario || !nomeUsuario.trim()) {
             nomeUsuario = prompt("Como posso te chamar?");
-            localStorage.setItem('mimi_usuario', nomeUsuario || "Convidado");
+            if (!nomeUsuario || !nomeUsuario.trim()) {
+                nomeUsuario = "Convidado";
+            }
+            sessionStorage.setItem('mimi_usuario', nomeUsuario.trim());
         }
         document.getElementById('userDisplay').textContent = nomeUsuario;
 
         let historicoConversa = [];
         try {
-            const salvo = localStorage.getItem('mimi_historico');
+            const salvo = sessionStorage.getItem('mimi_historico');
             if (salvo) historicoConversa = JSON.parse(salvo);
             if (!Array.isArray(historicoConversa)) historicoConversa = [];
         } catch (e) {
@@ -359,9 +363,7 @@
                 try {
                     orbWrapper.classList.add('listening');
                     recognition.start();
-                } catch (e) {
-                    // Já pode estar ouvindo
-                }
+                } catch (e) {}
             }
 
             recognition.onresult = (event) => {
@@ -369,20 +371,19 @@
                 orbWrapper.classList.remove('listening');
                 if (texto) {
                     document.getElementById('userInput').value = texto;
-                    enviarMensagem(true); // true indica que veio por voz
+                    enviarMensagem(true);
                 }
             };
 
-            recognition.onerror = (event) => {
+            recognition.onerror = () => {
                 orbWrapper.classList.remove('listening');
                 if (modoVozAtivo && !aguardandoRespostaDaIA) {
-                    setTimeout(iniciarEscuta, 1000); // Tenta de novo se falhar por silêncio
+                    setTimeout(iniciarEscuta, 1000);
                 }
             };
 
             recognition.onend = () => {
                 orbWrapper.classList.remove('listening');
-                // Se o modo voz estiver ligado e a IA não estiver falando/pensando, reabre o microfone
                 if (modoVozAtivo && !aguardandoRespostaDaIA) {
                     setTimeout(iniciarEscuta, 500);
                 }
@@ -434,7 +435,7 @@
                     falar(data.resposta, () => {
                         aguardandoRespostaDaIA = false;
                         if (modoVozAtivo) {
-                            setTimeout(iniciarEscuta, 600); // Reabre o microfone após Mimi terminar de falar
+                            setTimeout(iniciarEscuta, 600);
                         }
                     });
                 } else {
@@ -459,7 +460,7 @@
                 historicoConversa = historicoConversa.slice(-MAX_MSG_LOCAL);
             }
             try {
-                localStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
+                sessionStorage.setItem('mimi_historico', JSON.stringify(historicoConversa));
             } catch (e) {}
         }
 
@@ -478,7 +479,6 @@
             }
             window.speechSynthesis.cancel();
 
-            // Limpa emojis e códigos para a fala soar natural
             const textoLimpo = texto
                 .replace(/[\u{1F600}-\u{1F64F}]/gu, '')
                 .replace(/[\u{1F300}-\u{1F5FF}]/gu, '')
@@ -517,7 +517,7 @@
 
         function limparMemoria() {
             if (confirm("Deseja limpar o histórico de conversas?")) {
-                localStorage.removeItem('mimi_historico');
+                sessionStorage.removeItem('mimi_historico');
                 historicoConversa = [];
                 chatContainer.innerHTML = '';
             }
