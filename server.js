@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
-const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 app.use(express.json());
@@ -11,47 +10,11 @@ app.use(cors());
 // Libera os arquivos estáticos do frontend (pasta public)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicializa a API do Gemini
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 // Banco de dados em memória para armazenar o histórico por usuário
 const historicosUsuarios = {};
 
 // Prompt de sistema da Mimi com o seu nome gravado
-const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. O seu criador e dono é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva!`;
-
-// Função de Fallback 100% ajustada para a Groq
-async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
-    const groqApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY; 
-    
-    if (!groqApiKey) {
-        console.warn("⚠️ Aviso: Chave da API da Groq não encontrada no ambiente do Render.");
-        throw new Error("O sistema de IA está temporariamente indisponível.");
-    }
-
-    const mensagens = [
-        { role: "system", content: promptSistema },
-        ...historicoFormatado.map(h => ({
-            role: h.role === 'model' ? 'assistant' : 'user',
-            content: h.parts[0].text
-        })),
-        { role: "user", content: mensagemAtual }
-    ];
-
-    // URL e modelo oficiais da Groq (Llama 3.3)
-    const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: 'llama-3.3-70b-versatile', 
-        messages: mensagens,
-        temperature: 0.7
-    }, {
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${groqApiKey.trim()}`
-        }
-    });
-
-    return response.data.choices[0].message.content;
-}
+const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva!`;
 
 // Rota para buscar o histórico do usuário
 app.get('/api/historico/:nome', (req, res) => {
@@ -65,7 +28,7 @@ app.get('/api/historico/:nome', (req, res) => {
     }
 });
 
-// Rota principal de chat
+// Rota principal de chat usando diretamente a Groq (modelo estável llama-3.1-8b-instant)
 app.post('/api/chat', async (req, res) => {
     try {
         const { mensagem, nomeUsuario } = req.body;
@@ -80,42 +43,47 @@ app.post('/api/chat', async (req, res) => {
         }
         const historicoAtual = historicosUsuarios[usuario];
 
-        const historicoFormatado = historicoAtual.map(h => ({
-            role: h.remetente === 'user' ? 'user' : 'model',
-            parts: [{ text: h.texto }]
-        }));
-
-        let respostaTexto = "";
-
-        try {
-            console.log(`[${usuario}] Tentando processar com o Gemini...`);
-            const chat = ai.chats.create({
-                model: 'gemini-3.5-flash',
-                history: historicoFormatado,
-                config: {
-                    systemInstruction: SYSTEM_PROMPT,
-                }
-            });
-
-            const result = await chat.sendMessage({ message: mensagem });
-            respostaTexto = result.text;
-
-        } catch (geminiError) {
-            console.warn("⚠️ Gemini falhou. Acionando a Groq de emergência...", geminiError.message);
-            respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
-            respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/Groq)*";
+        const groqApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY; 
+        if (!groqApiKey) {
+            return res.status(500).json({ error: 'Chave da API Groq não configurada no Render.' });
         }
 
+        // Monta as mensagens para a API da Groq
+        const mensagens = [
+            { role: "system", content: SYSTEM_PROMPT },
+            ...historicoAtual.map(h => ({
+                role: h.remetente === 'user' ? 'user' : 'assistant',
+                content: h.texto
+            })),
+            { role: "user", content: mensagem }
+        ];
+
+        console.log(`[${usuario}] Enviando requisição para a Groq...`);
+
+        const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
+            model: 'llama-3.1-8b-instant', // Modelo ultrarrápido e 100% estável na Groq
+            messages: mensagens,
+            temperature: 0.7
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${groqApiKey.trim()}`
+            }
+        });
+
+        const respostaTexto = response.data.choices[0].message.content;
+
+        // Salva no histórico
         historicoAtual.push({ texto: mensagem, remetente: 'user' });
         historicoAtual.push({ texto: respostaTexto, remetente: 'mimi' });
 
         res.json({ resposta: respostaTexto });
 
     } catch (error) {
-        console.error("Erro detalhado na API de Chat:", error);
+        console.error("Erro detalhado na API de Chat:", error.response?.data || error.message);
         res.status(500).json({ 
             error: 'Erro interno no servidor ao processar sua mensagem.', 
-            details: error.message 
+            details: error.response?.data || error.message 
         });
     }
 });
