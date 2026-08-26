@@ -18,7 +18,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const historicosUsuarios = {};
 
 // Prompt de sistema da Mimi
-const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva.`;
+// Prompt de sistema da Mimi com o seu nome gravado
+const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. O seu criador e dono é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva!`;
 
 // Função de Fallback para o Grok/Groq
 async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
