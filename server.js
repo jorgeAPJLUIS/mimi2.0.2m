@@ -1,11 +1,15 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios'); // Garantido o uso do axios para o fallback
+const path = require('path');
+const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// LIBERA OS ARQUIVOS DO FRONTEND (HTML, CSS, JS) DA PASTA PUBLIC
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Inicializa a API do Gemini
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -13,9 +17,8 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 // Prompt de sistema da Mimi
 const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva.`;
 
-// FUNÇÃO DE FALLBACK PARA O GROK/GROQ (Ajustada para o nome que está no Render)
+// FUNÇÃO DE FALLBACK PARA O GROK/GROQ
 async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
-    // Procura a chave usando o nome exato que está no painel do Render (GROQ_API_KEY)
     const grokApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY || process.env.XAI_API_KEY; 
     
     if (!grokApiKey) {
@@ -23,7 +26,6 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
         throw new Error("O sistema de IA está temporariamente indisponível (limite de cota atingido e fallback indisponível).");
     }
 
-    // Formata o histórico para o padrão OpenAI / xAI
     const mensagens = [
         { role: "system", content: promptSistema },
         ...historicoFormatado.map(h => ({
@@ -40,7 +42,7 @@ async function chamarGrok(promptSistema, historicoFormatado, mensagemAtual) {
     }, {
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${grokApiKey.trim()}` // Remove espaços acidentais
+            'Authorization': `Bearer ${grokApiKey.trim()}`
         }
     });
 
@@ -56,7 +58,6 @@ app.post('/api/chat', async (req, res) => {
             return res.status(400).json({ error: 'A mensagem não pode estar vazia.' });
         }
 
-        // Formata o histórico recebido para o padrão do Gemini
         const historicoFormatado = history ? history.map(h => ({
             role: h.role === 'user' ? 'user' : 'model',
             parts: [{ text: h.content }]
@@ -65,7 +66,6 @@ app.post('/api/chat', async (req, res) => {
         let respostaTexto = "";
 
         try {
-            // Tenta usar o Gemini primeiro
             console.log("Tentando processar com o Gemini...");
             const chat = ai.chats.create({
                 model: 'gemini-3.5-flash',
@@ -79,9 +79,7 @@ app.post('/api/chat', async (req, res) => {
             respostaTexto = result.text;
 
         } catch (geminiError) {
-            console.warn("⚠️ Gemini falhou (possível limite de cota/429 ou instabilidade). Acionando o Grok de emergência...", geminiError);
-            
-            // Se o Gemini falhar, ativa o fallback automático para o Grok
+            console.warn("⚠️ Gemini falhou. Acionando o Grok de emergência...", geminiError);
             respostaTexto = await chamarGrok(SYSTEM_PROMPT, historicoFormatado, message);
             respostaTexto += "\n\n*(⚠️ Resposta gerada via sistema de emergência/fallback)*";
         }
@@ -89,7 +87,7 @@ app.post('/api/chat', async (req, res) => {
         res.json({ reply: respostaTexto });
 
     } catch (error) {
-        console.error("Erro detalhado na API de Chat (Geral/Fallback):", error);
+        console.error("Erro detalhado na API de Chat:", error);
         res.status(500).json({ 
             error: 'Erro interno no servidor ao processar sua mensagem.', 
             details: error.message 
@@ -97,7 +95,7 @@ app.post('/api/chat', async (req, res) => {
     }
 });
 
-// Porta padrão do Render ou 10000 localmente (GARANTINDO A PORTA CORRETA)
+// Porta padrão do Render ou 10000 localmente
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Servidor rodando na porta ${PORT}`);
