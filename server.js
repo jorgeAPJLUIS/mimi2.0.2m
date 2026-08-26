@@ -9,7 +9,14 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicializa o SDK da Google Gen AI (Certifique-se de que a variável GEMINI_API_KEY está configurada no Render)
+process.on('uncaughtException', (err) => {
+    console.error('ERRO CRITICO NAO CAPTURADO:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('REJEICAO NAO TRATADA:', reason);
+});
+
+// Inicializa o SDK da Google Gen AI
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Caminho para salvar a memória dos usuários de forma persistente no servidor
@@ -20,7 +27,7 @@ function carregarMemorias() {
     try {
         if (fs.existsSync(MEMORY_FILE)) {
             const data = fs.readFileSync(MEMORY_FILE, 'utf8');
-            return JSON.parse(data);
+            return JSON.parse(data || '{}');
         }
     } catch (e) {
         console.error("Erro ao carregar memórias:", e);
@@ -73,13 +80,12 @@ app.post('/api/chat', async (req, res) => {
             contextoEstrangeiro = `[NOTA DO SISTEMA: O usuário conversando com você se chama ${usuarioLimpo}.]\n\n`;
         }
 
-        // Prepara o histórico para o formato aceito pelo Gemini e adiciona a system instruction no início
+        // Prepara o histórico para o formato aceito pelo Gemini
         const historicoFormatado = dadosUsuario.historico.slice(-15).map(h => ({
             role: h.remetente === 'user' ? 'user' : 'model',
             parts: [{ text: h.texto }]
         }));
 
-        // Insere a instrução de sistema na primeira mensagem ou usa o generateContent com histórico completo
         const response = await ai.models.generateContent({
             model: 'gemini-3.5-flash',
             contents: [
@@ -103,4 +109,20 @@ app.post('/api/chat', async (req, res) => {
         console.error("Erro detalhado na API de Chat:", error);
         res.status(500).json({ error: "Erro interno no núcleo da Mimi.", detalhes: error.message });
     }
+});
+
+// Endpoint para carregar o histórico salvo do usuário
+app.get('/api/historico/:usuario', (req, res) => {
+    const usuarioKey = req.params.usuario.toLowerCase();
+    const memorias = carregarMemorias();
+    if (memorias[usuarioKey]) {
+        res.json({ historico: memorias[usuarioKey].historico });
+    } else {
+        res.json({ historico: [] });
+    }
+});
+
+// Inicia o servidor para mantê-lo ativo no Render
+app.listen(port, () => {
+    console.log(`Servidor rodando na porta ${port}`);
 });
