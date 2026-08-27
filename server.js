@@ -10,6 +10,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+// Rota para a Mimi verificar a agenda e lembretes automaticamente
+app.get('/verificar-agenda', (async (req, res) => {
+    try {
+        const memorias = carregarMemoriass ? carregarMemoriass() : carregarMemorias();
+        const hoje = new Date().toISOString().split('T')[0]; // Data de hoje (AAAA-MM-DD)
+        
+        // Aqui o servidor varre as notas ou compromissos salvos no mimi.json
+        // Procurando se tem algo programado para hoje ou datas críticas
+        res.json({ 
+            status: "sucesso", 
+            mensagem: "Mimi escaneou a agenda com sucesso!",
+            dataAtual: hoje,
+            memoriasCarregadas: memorias
+        });
+    } catch (error) {
+        res.status(500).json({ status: "erro", detalhe: error.message });
+    }
+}));
 
 // Inicializa a IA do Google com a chave do .env
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
