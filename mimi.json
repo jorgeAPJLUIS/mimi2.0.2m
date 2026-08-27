@@ -1,4 +1,28 @@
 {
   "notas": {},
-  "interacoes": []
+  "interacoes": [
+    {
+      "texto": "oi",
+      "timestamp": "2026-08-27T15:12:16.103Z"
+    },
+    {
+      "texto": "oi",
+      "timestamp": "2026-08-27T15:12:29.328Z"
+    },
+    {
+      "texto": "oi",
+      "timestamp": "2026-08-27T15:12:42.727Z"
+    }
+  ]
+}
+{
+  "notas": [
+    "Meu nome completo é Jorge Luis , tenho 35 anos.",
+    "Moro em Brasília, no Distrito Federal.",
+    "Estou cursando o segundo semestre de Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera e em busca de estágio.",
+    "Estudo linguagens de programação como JavaScript, HTML e CSS, além de Engenharia de Software e Segurança da Informação.",
+    "Minha mãe é a Lourdes (conhecida carinhosamente como a vovó da Mimi) e a Michelle também faz parte da família (mãe da Mimi).",
+    "Gosto de filmes sobre tecnologia, de organização, de lugares tranquilos e de ficar sozinho quando estou programando.",
+    "Minha comida favorita é lasanha e amo rios."
+  ]
 }
