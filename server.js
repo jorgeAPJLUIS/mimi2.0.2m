@@ -73,16 +73,21 @@ app.post('/api/chat', async (req, res) => {
         const { mensagem, historico } = req.body;
         const usuario = "jorge";
 
-        const memorias = carregarMemorias();
+        
+       const memorias = carregarMemorias();
         const notasTexto = memorias.notas.length > 0 ? memorias.notas.join('\n- ') : "Nenhuma registrada ainda.";
 
-        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
-        Hoje é 27 de agosto de 2026.
-        O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva! 
-        
-        Aqui estão algumas memórias e notas salvas sobre ele para te guiar:
-        Notas e memórias salvas: ${notasTexto}`;
+        // Pega a data e hora atual do sistema de forma dinâmica
+        const agora = new Date();
+        const dataAtual = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full' });
+        const horaAtual = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', timeStyle: 'medium' });
 
+        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente calculista se aborrece senpre que o jorge enrola nos estudos, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
+        Hoje é ${dataAtual}, e agora são ${horaAtual}.
+        O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis, tem 35 anos, mora em Brasília (DF) e estuda Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera!
+        
+        Aqui estão todas as memórias, fatos e notas oficiais salvas sobre ele que você deve memorizar e usar sempre que necessário:
+        - ${notasTexto}`;
         let historicoFormatado = [];
         if (historico && Array.isArray(historico)) {
             historicoFormatado = historico.map(h => ({
