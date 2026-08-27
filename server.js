@@ -3,30 +3,31 @@ const cors = require('cors');
 const path = require('path');
 const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
+const UserProfile = require('./userProfile'); // Importando o seu userProfile.js existente
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Libera os arquivos estáticos do frontend (pasta public)
+// Libera os arquivos estáticos da pasta public (frontend)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Inicializa a API do Gemini
+// Inicializa a API do Gemini com segurança
 const geminiApiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : '';
 const ai = new GoogleGenAI({ apiKey: geminiApiKey });
 
-// Banco de dados em memória para armazenar o histórico por usuário
+// Instancia o gerenciador de perfil
+const userProfile = new UserProfile();
+
+// Banco de dados em memória para armazenar o histórico de conversas por usuário
 const historicosUsuarios = {};
 
-// Prompt de sistema da Mimi com o seu nome gravado
-const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva!`;
-
-// Função de Fallback usando a Groq
+// Função de Fallback robusta usando a Groq (caso o Gemini falhe)
 async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
     const groqApiKey = process.env.GROQ_API_KEY || process.env.GROK_API_KEY; 
     
     if (!groqApiKey) {
-        throw new Error("Chave da API Groq não encontrada no ambiente.");
+        throw new Error("Chave da API Groq não encontrada no ambiente (.env).");
     }
 
     const mensagens = [
@@ -64,7 +65,7 @@ app.get('/api/historico/:nome', (req, res) => {
     }
 });
 
-// Rota principal de chat com suporte às duas APIs
+// Rota principal de chat
 app.post('/api/chat', async (req, res) => {
     try {
         const { mensagem, nomeUsuario } = req.body;
@@ -73,6 +74,30 @@ app.post('/api/chat', async (req, res) => {
         if (!mensagem) {
             return res.status(400).json({ error: 'A mensagem não pode estar vazia.' });
         }
+
+        // Salva a interação no perfil/memória através do userProfile.js
+        if (typeof userProfile.adicionarInteracao === 'function') {
+            userProfile.adicionarInteracao(mensagem);
+        }
+
+        // Recupera o contexto salvo para ajudar a IA
+        let contextoNotas = "";
+        if (typeof userProfile.obterContextoParaIA === 'function') {
+            userProfile.obterContextoParaIA((textoNotas) => {
+                contextoNotas = textoNotas;
+            });
+        }
+
+        // Data atual injetada para manter a Mimi sincronizada (27 de agosto de 2026)
+        const dataHoje = "27 de agosto de 2026";
+
+        // Prompt de Sistema Definitivo
+        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
+        Hoje é ${dataHoje}.
+        O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva Ferreira da Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis Santos Ferreira Silva Ferreira da Silva! 
+        
+        Aqui estão algumas memórias e notas salvas sobre ele para te guiar:
+        ${contextoNotas}`;
 
         if (!historicosUsuarios[usuario]) {
             historicosUsuarios[usuario] = [];
@@ -86,9 +111,9 @@ app.post('/api/chat', async (req, res) => {
 
         let respostaTexto = "";
 
-        // Tenta processar com o Gemini primeiro
+        // Tenta processar com o Gemini (modelo atualizado)
         try {
-            console.log(`[${usuario}] Tentando processar com o Gemini...`);
+            console.log(`[${usuario}] Processando via Gemini...`);
             const chat = ai.chats.create({
                 model: 'gemini-2.5-flash',
                 history: historicoFormatado,
@@ -101,11 +126,11 @@ app.post('/api/chat', async (req, res) => {
             respostaTexto = result.text;
 
         } catch (geminiError) {
-            console.warn("⚠️ Gemini indisponível, acionando a Groq...", geminiError.message);
+            console.warn("⚠️ Gemini indisponível ou com falha, alternando para a Groq...", geminiError.message);
             respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
         }
 
-        // Salva no histórico
+        // Salva no histórico em memória
         historicoAtual.push({ texto: mensagem, remetente: 'user' });
         historicoAtual.push({ texto: respostaTexto, remetente: 'mimi' });
 
