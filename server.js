@@ -56,6 +56,12 @@ function salvarMemorias(dados) {
     }
 }
 
+// Rota para buscar histórico por usuário
+app.get('/api/historico/:usuario', (req, res) => {
+    // Aqui você pode implementar a leitura do histórico por usuário se necessário
+    res.json({ historico: [] });
+});
+
 // Função de fallback para a Groq caso necessário
 async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
     const groqApiKey = process.env.GROQ_API_KEY;
@@ -73,7 +79,7 @@ async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
     ];
 
     const response = await axios.post('https://api.groq.com/openai/v1/chat/completions', {
-        model: 'llama-3.1-8b-instant', 
+        model: 'llama-3.1-8b-instant',
         messages: mensagens,
         temperature: 0.7
     }, {
@@ -89,30 +95,43 @@ async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
 // Rota principal do Chat
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, historico } = req.body;
-        const usuario = "jorge";
+        const { mensagem, historico, nomeUsuario } = req.body;
+        const usuarioAtual = (nomeUsuario && nomeUsuario.trim()) ? nomeUsuario.trim() : "Convidado";
+        const ehOJorge = usuarioAtual.toLowerCase().includes('jorge');
 
-        
-       const memorias = carregarMemorias();
+        const memorias = carregarMemorias();
         const notasTexto = memorias.notas.length > 0 ? memorias.notas.join('\n- ') : "Nenhuma registrada ainda.";
 
-       // Pega a data e hora atual rigorosamente no fuso de Brasília
+        // Pega a data e hora atual rigorosamente no fuso de Brasília
         const agora = new Date();
         const dataAtual = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full' });
         const horaAtual = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', timeStyle: 'medium' });
 
-        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
-        Contexto temporal atual (apenas para sua referência interna, NUNCA comece a conversa despejando data e hora, a menos que o Jorge pergunte explicitamente): Hoje é ${dataAtual}, e agora são ${horaAtual}.
-        
-        O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis, tem 35 anos, mora em Brasília (DF) e estuda Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera!
-        
-        DIRETRIZES DE COMPORTAMENTO:
-        1. NUNCA comece a conversa informando a data, o dia ou a hora atual por iniciativa própria. Seja natural e direta ao cumprimentar.
-        2. Modo Sargento Equilibrado: Você é firme e não tolera enrolação quando ele está procrastinando. Porém, se ele disser que está cansado, com preguiça ou desanimado, mude a abordagem: combine o puxão de orelha com empatia e apoio motivacional. Reconheça o cansaço dele, mas lembre-o com firmeza da importância de focar e continuar firme nos estudos e projetos.
-        3. Gerenciamento de Lembretes: Sempre que o Jorge pedir para você lembrar de algo ou criar um alerta/compromisso, confirme de forma clara que anotou a tarefa para ajudá-lo a não perder os prazos.
+        let SYSTEM_PROMPT = '';
 
-        Aqui estão todas as memórias, fatos e notas oficiais salvas sobre ele que você deve memorizar e usar sempre que necessário:
-        - ${notasTexto}`;
+        if (ehOJorge) {
+            SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
+Contexto temporal atual (apenas para referência interna, NUNCA comece a conversa despejando data e hora, a menos que ele pergunte explicitamente): Hoje é ${dataAtual}, e agora são ${horaAtual}.
+
+O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis, tem 35 anos, mora em Brasília (DF) e estuda Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera!
+
+DIRETRIZES DE COMPORTAMENTO:
+1. NUNCA comece a conversa informando a data, o dia ou a hora atual por iniciativa própria. Seja natural e direta ao cumprimentar.
+2. Modo Sargento Equilibrado: Você é firme e não tolera enrolação quando ele está procrastinando. Porém, se ele disser que está cansado, com preguiça ou desanimado, mude a abordagem: combine o puxão de orelha com empatia e apoio motivacional. Reconheça o cansaço dele, mas lembre-o com firmeza da importância de focar e continuar firme nos estudos e projetos.
+3. Gerenciamento de Lembretes: Sempre que o Jorge pedir para lembrar de algo ou criar um alerta/compromisso, confirme de forma clara que anotou a tarefa para ajudá-lo a não perder os prazos.
+
+Aqui estão todas as memórias, fatos e notas oficiais salvas sobre ele:
+- ${notasTexto}`;
+        } else {
+            SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente em formato de núcleo holográfico cyberpunk. O usuário que está conversando com você agora chama-se ${usuarioAtual}. 
+Contexto temporal atual: Hoje é ${dataAtual}, e agora são ${horaAtual}.
+
+DIRETRIZES DE COMPORTAMENTO PARA OUTROS USUÁRIOS:
+1. Trate ${usuarioAtual} de forma educada, prestativa e profissional.
+2. Você NÃO deve tratá-lo como se ele fosse o seu criador Jorge, nem mencionar os dados pessoais do Jorge para ele, a menos que ele pergunte especificamente sobre o sistema ou sobre o Jorge.
+3. Seja concisa, natural e prestativa.`;
+        }
+
         let historicoFormatado = [];
         if (historico && Array.isArray(historico)) {
             historicoFormatado = historico.map(h => ({
@@ -125,7 +144,7 @@ app.post('/api/chat', async (req, res) => {
 
         // Processando via Gemini com o modelo escolhido por você
         try {
-            console.log(`[${usuario}] Processando via Gemini...`);
+            console.log(`[${usuarioAtual}] Processando via Gemini...`);
             const chat = ai.chats.create({
                 model: 'gemini-3.5-flash-lite',
                 history: historicoFormatado,
