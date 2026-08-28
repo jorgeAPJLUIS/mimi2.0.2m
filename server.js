@@ -95,17 +95,16 @@ async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
 // Rota principal do Chat
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, historico, usuario } = req.body;
-        const usuarioAtual = usuario || "Visitante";
+       const { mensagem, historico, usuario, nomeUsuario } = req.body;
+// Se veio nomeUsuario ou usuario, usa ele; senão, assume que é o Jorge para o sistema não pirar
+const usuarioAtual = nomeUsuario || usuario || "Jorge";
 
-        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente em formato de núcleo holográfico cyberpunk. O usuário que está conversando com você agora chama-se ${usuarioAtual}. 
-Contexto temporal atual: Hoje é sexta-feira, 28 de agosto de 2026.
+      const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente e direta. O usuário conversando com você é o seu criador e administrador, Jorge.
 
-DIRETRIZES DE COMPORTAMENTO:
-1. Trate ${usuarioAtual} de forma educada, prestativa e profissional.
-2. Você NÃO deve tratá-lo como se ele fosse o seu criador Jorge, nem mencionar dados confidenciais do Jorge, a menos que ele pergunte especificamente sobre o sistema.
-3. Seja concisa, natural e mantenha a persona cyberpunk de núcleo holográfico.`;
-
+DIRETRIZES:
+1. Trate sempre o Jorge pelo nome, com respeito e atenção. Nunca o chame de "visitante".
+2. Responda de forma clara, prestativa e objetiva, sem repetições desnecessárias ou termos robóticos excessivos.
+3. Se ele pedir o modo dev ou comandos de sistema, atenda prontamente.`;
         let historicoFormatado = [];
         if (historico && Array.isArray(historico)) {
             historicoFormatado = historico.map(h => ({
