@@ -95,42 +95,16 @@ async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
 // Rota principal do Chat
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, historico, nomeUsuario } = req.body;
-        const usuarioAtual = (nomeUsuario && nomeUsuario.trim()) ? nomeUsuario.trim() : "Convidado";
-        const ehOJorge = usuarioAtual.toLowerCase().includes('jorge');
+        const { mensagem, historico, usuario } = req.body;
+        const usuarioAtual = usuario || "Visitante";
 
-        const memorias = carregarMemorias();
-        const notasTexto = memorias.notas.length > 0 ? memorias.notas.join('\n- ') : "Nenhuma registrada ainda.";
-
-        // Pega a data e hora atual rigorosamente no fuso de Brasília
-        const agora = new Date();
-        const dataAtual = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', dateStyle: 'full' });
-        const horaAtual = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', timeStyle: 'medium' });
-
-        let SYSTEM_PROMPT = '';
-
-        if (ehOJorge) {
-            SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, amigável e prestativa. Responda sempre em português do Brasil de forma clara, natural e objetiva. 
-Contexto temporal atual (apenas para referência interna, NUNCA comece a conversa despejando data e hora, a menos que ele pergunte explicitamente): Hoje é ${dataAtual}, e agora são ${horaAtual}.
-
-O seu criador, dono e melhor amigo é o Jorge Luis Santos Ferreira Silva. Sempre que ele perguntar quem ele é, responda com orgulho que ele é o Jorge Luis, tem 35 anos, mora em Brasília (DF) e estuda Análise e Desenvolvimento de Sistemas na Faculdade Anhanguera!
+        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente em formato de núcleo holográfico cyberpunk. O usuário que está conversando com você agora chama-se ${usuarioAtual}. 
+Contexto temporal atual: Hoje é sexta-feira, 28 de agosto de 2026.
 
 DIRETRIZES DE COMPORTAMENTO:
-1. NUNCA comece a conversa informando a data, o dia ou a hora atual por iniciativa própria. Seja natural e direta ao cumprimentar.
-2. Modo Sargento Equilibrado: Você é firme e não tolera enrolação quando ele está procrastinando. Porém, se ele disser que está cansado, com preguiça ou desanimado, mude a abordagem: combine o puxão de orelha com empatia e apoio motivacional. Reconheça o cansaço dele, mas lembre-o com firmeza da importância de focar e continuar firme nos estudos e projetos.
-3. Gerenciamento de Lembretes: Sempre que o Jorge pedir para lembrar de algo ou criar um alerta/compromisso, confirme de forma clara que anotou a tarefa para ajudá-lo a não perder os prazos.
-
-Aqui estão todas as memórias, fatos e notas oficiais salvas sobre ele:
-- ${notasTexto}`;
-        } else {
-            SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente em formato de núcleo holográfico cyberpunk. O usuário que está conversando com você agora chama-se ${usuarioAtual}. 
-Contexto temporal atual: Hoje é ${dataAtual}, e agora são ${horaAtual}.
-
-DIRETRIZES DE COMPORTAMENTO PARA OUTROS USUÁRIOS:
 1. Trate ${usuarioAtual} de forma educada, prestativa e profissional.
-2. Você NÃO deve tratá-lo como se ele fosse o seu criador Jorge, nem mencionar os dados pessoais do Jorge para ele, a menos que ele pergunte especificamente sobre o sistema ou sobre o Jorge.
-3. Seja concisa, natural e prestativa.`;
-        }
+2. Você NÃO deve tratá-lo como se ele fosse o seu criador Jorge, nem mencionar dados confidenciais do Jorge, a menos que ele pergunte especificamente sobre o sistema.
+3. Seja concisa, natural e mantenha a persona cyberpunk de núcleo holográfico.`;
 
         let historicoFormatado = [];
         if (historico && Array.isArray(historico)) {
@@ -142,30 +116,38 @@ DIRETRIZES DE COMPORTAMENTO PARA OUTROS USUÁRIOS:
 
         let respostaTexto = "";
 
-        // Processando via Gemini com o modelo escolhido por você
         try {
             console.log(`[${usuarioAtual}] Processando via Gemini...`);
-            const chat = ai.chats.create({
-                model: 'gemini-3.5-flash-lite',
-                history: historicoFormatado,
+            
+            const response = await ai.models.generateContent({
+                model:'gemini-3.5-flash-lite', // Usando uma versão estável e garantida
+                contents: [
+                    ...historicoFormatado,
+                    { role: 'user', parts: [{ text: mensagem }] }
+                ],
                 config: {
                     systemInstruction: SYSTEM_PROMPT,
                 }
             });
 
-            const result = await chat.sendMessage({ message: mensagem });
-            respostaTexto = result.text;
+            // Garante a leitura correta do texto retornado
+            respostaTexto = response.text || (response.candidates?.[0]?.content?.parts?.[0]?.text) || "Processamento concluído, mas sem texto de retorno.";
 
         } catch (geminiError) {
-            console.warn("⚠️ Gemini indisponível, alternando para a Groq...", geminiError.message);
-            respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
+            console.warn("⚠️ Gemini indisponível, tentando a Groq...", geminiError.message);
+            try {
+                respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
+            } catch (groqError) {
+                console.error("⚠️ Groq também falhou:", groqError.message);
+                respostaTexto = `Meus circuitos neurais oscilaram agora há pouco, ${usuarioAtual}. Tenta mandar sua mensagem de novo em instantes!`;
+            }
         }
 
         res.json({ resposta: respostaTexto });
 
     } catch (error) {
         console.error("Erro interno no servidor:", error);
-        res.status(500).json({ error: "Erro interno ao processar a mensagem." });
+        res.status(500).json({ resposta: "⚠️ Erro crítico nos meus sistemas internos. Tente novamente." });
     }
 });
 
