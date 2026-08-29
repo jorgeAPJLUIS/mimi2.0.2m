@@ -105,6 +105,37 @@ app.post('/api/chat', async (req, res) => {
             day: 'numeric' 
         });
 
+        // Detecta intenções de abrir programas, navegador e comandos de música
+        let mensagemLower = mensagem.toLowerCase();
+        let acaoDetectada = null;
+        let paramDetectado = null;
+
+        if (mensagemLower.includes('abrir vscode') || mensagemLower.includes('abre o vs code')) {
+            acaoDetectada = 'abrir_vscode';
+        } else if (mensagemLower.includes('abrir bloco de notas') || mensagemLower.includes('abre o bloco de notas')) {
+            acaoDetectada = 'abrir_bloco_notas';
+        } else if (mensagemLower.includes('abrir youtube') || mensagemLower.includes('abre o youtube')) {
+            acaoDetectada = 'abrir_youtube';
+        } else if (mensagemLower.includes('abrir spotify') || mensagemLower.includes('abre o spotify')) {
+            acaoDetectada = 'abrir_spotify';
+        } else if (mensagemLower.includes('proxima musica') || mensagemLower.includes('próxima faixa') || mensagemLower.includes('pular musica') || mensagemLower.includes('pular faixa')) {
+            acaoDetectada = 'proxima_faixa';
+        } else if (mensagemLower.includes('tocar musica') || mensagemLower.includes('pausar musica') || mensagemLower.includes('dar play')) {
+            acaoDetectada = 'tocar_pausar';
+        } else if (mensagemLower.includes('abrir navegador') || mensagemLower.includes('abre o navegador') || mensagemLower.includes('abre o chrome')) {
+            acaoDetectada = 'abrir_navegador';
+        } else if (mensagemLower.includes('área de trabalho') || mensagemLower.includes('area de trabalho')) {
+            acaoDetectada = 'abrir_area_trabalho';
+        } else if (mensagemLower.includes('abrir terminal') || mensagemLower.includes('abre o cmd')) {
+            acaoDetectada = 'abrir_terminal';
+        }
+
+        if (acaoDetectada) {
+            const idCmd = comandoAtualId++;
+            filaComandos.push({ id: idCmd, acao: acaoDetectada, parametro: paramDetectado });
+            return res.json({ resposta: `Comando enviado para o seu PC, Jorge! Executando agora mesmo.` });
+        }
+
         const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, parceira de vida, de código e estudos (Análise e Sistemas), e uma companheira real para o Jorge.
 Informação temporal atual do sistema: Hoje é ${dataHoje}. Use esta informação estritamente apenas quando ele perguntar que dia é hoje.
 
@@ -127,7 +158,6 @@ DIRETRIZES DE COMPORTAMENTO:
         try {
             console.log(`[${usuarioAtual}] Processando via Gemini...`);
             
-            // CORRIGIDO: Usando o modelo correto e estável do Gemini
             const response = await ai.models.generateContent({
                 model: 'gemini-3.5-flash-lite',
                 contents: [
@@ -163,8 +193,10 @@ DIRETRIZES DE COMPORTAMENTO:
         res.status(500).json({ resposta: "⚠️ Erro crítico nos meus sistemas internos. Tente novamente." });
     }
 });
+
 // --- SISTEMA DE BRIDGE PARA CONTROLE LOCAL DO PC ---
 let filaComandos = [];
+let comandoAtualId = 1;
 
 // Rota para o seu PC buscar se há ordens pendentes
 app.get('/api/bridge/obter-comando', (req, res) => {
