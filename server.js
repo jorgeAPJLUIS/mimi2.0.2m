@@ -163,6 +163,26 @@ DIRETRIZES DE COMPORTAMENTO:
         res.status(500).json({ resposta: "⚠️ Erro crítico nos meus sistemas internos. Tente novamente." });
     }
 });
+// --- SISTEMA DE BRIDGE PARA CONTROLE LOCAL DO PC ---
+let filaComandos = [];
+
+// Rota para o seu PC buscar se há ordens pendentes
+app.get('/api/bridge/obter-comando', (req, res) => {
+    if (filaComandos.length > 0) {
+        const cmd = filaComandos.shift();
+        res.json(cmd);
+    } else {
+        res.json({ comando: null });
+    }
+});
+
+// Rota para o PC devolver o resultado da execução para o servidor
+app.post('/api/bridge/resposta', (req, res) => {
+    const { id, resultado } = req.body;
+    console.log(`[Bridge] Comando finalizado: ${resultado}`);
+    res.json({ status: "recebido" });
+});
+// ---------------------------------------------------
 
 // Porta dinâmica (pega do .env ou padrão 3000)
 const PORT = process.env.PORT || 3000;
