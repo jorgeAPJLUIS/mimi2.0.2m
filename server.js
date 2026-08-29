@@ -204,7 +204,7 @@ app.get('/api/bridge/obter-comando', (req, res) => {
         const cmd = filaComandos.shift();
         res.json(cmd);
     } else {
-        res.json({ comando: null });
+        res.json({ acao: null });
     }
 });
 
