@@ -2,7 +2,7 @@ const axios = require('axios');
 const { exec } = require('child_process');
 
 // Coloque aqui o link exato do seu projeto no Render
-const SERVER_URL = 'https://mimi2-0.onrender.com'; 
+const SERVER_URL = 'https://mimi2-0-2m.onrender.com'; 
 const INTERVALO_VERIFICACAO = 4000; // Checa a cada 4 segundos
 
 console.log("🤖 Mimi Bridge Local (Windows 10) iniciada. Pronta para abrir tudo e controlar suas músicas no seu PC!");
