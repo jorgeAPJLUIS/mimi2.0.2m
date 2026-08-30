@@ -14,7 +14,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Inicializa a IA do Google com a chave do .env
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-// Arquivo de memórias/notas
+// Arquivo de memórias/históricos
 const MEMORY_FILE = path.join(__dirname, 'mimi.json');
 
 function carregarMemorias() {
@@ -26,7 +26,7 @@ function carregarMemorias() {
     } catch (e) {
         console.error("Erro ao carregar memórias:", e);
     }
-    return { notas: [] };
+    return { historicos: {}, notas: [] };
 }
 
 function salvarMemorias(dados) {
@@ -56,9 +56,22 @@ app.get('/verificar-agenda', (async (req, res) => {
     }
 }));
 
-// Rota para buscar histórico por usuário
+// Rota para buscar histórico por usuário do arquivo persistente
 app.get('/api/historico/:usuario', (req, res) => {
-    res.json({ historico: [] });
+    try {
+        const usuarioParam = decodeURIComponent(req.params.usuario);
+        const memorias = carregarMemorias();
+        
+        if (!memorias.historicos) {
+            memorias.historicos = {};
+        }
+
+        const historicoUsuario = memorias.historicos[usuarioParam] || [];
+        res.json({ historico: historicoUsuario });
+    } catch (e) {
+        console.error("Erro ao buscar histórico:", e);
+        res.json({ historico: [] });
+    }
 });
 
 // Função de fallback para a Groq caso necessário
@@ -94,7 +107,7 @@ async function chamarGroq(promptSistema, historicoFormatado, mensagemAtual) {
 // Rota principal do Chat
 app.post('/api/chat', async (req, res) => {
     try {
-        const { mensagem, historico, usuario, nomeUsuario } = req.body;
+        const { mensagem, usuario, nomeUsuario } = req.body;
         const usuarioAtual = nomeUsuario || usuario || "Jorge";
 
         // Pega a data atual do servidor em tempo real
@@ -145,13 +158,17 @@ DIRETRIZES DE COMPORTAMENTO:
 3. Responda diretamente ao que foi dito, exatamente como uma conversa natural e fluida de chat entre duas pessoas. Seja prestativa, direta, humana e leal.
 4. Ajude ativamente em códigos, resolução de problemas e conselhos práticos. Se pedirem comandos de sistema, atenda prontamente.`;
 
-        let historicoFormatado = [];
-        if (historico && Array.isArray(historico)) {
-            historicoFormatado = historico.map(h => ({
-                role: h.role === 'user' ? 'user' : 'model',
-                parts: [{ text: h.content || h.parts?.[0]?.text || '' }]
-            })).filter(h => h.parts[0].text.trim() !== '');
-        }
+        // Carrega o histórico salvo no mimi.json para este usuário específico
+        let memorias = carregarMemorias();
+        if (!memorias.historicos) memorias.historicos = {};
+        if (!memorias.historicos[usuarioAtual]) memorias.historicos[usuarioAtual] = [];
+
+        const historicoDoUsuario = memorias.historicos[usuarioAtual];
+
+        let historicoFormatado = historicoDoUsuario.map(h => ({
+            role: h.remetente === 'user' ? 'user' : 'model',
+            parts: [{ text: h.texto }]
+        }));
 
         let respostaTexto = "";
 
@@ -185,6 +202,11 @@ DIRETRIZES DE COMPORTAMENTO:
                 respostaTexto = `${usuarioAtual}, meus circuitos neurais oscilaram agora há pouco. Tenta mandar sua mensagem de novo em instantes!`;
             }
         }
+
+        // Salva a nova interação no histórico persistente do usuário no mimi.json
+        memorias.historicos[usuarioAtual].push({ remetente: 'user', texto: mensagem, timestamp: new Date().toISOString() });
+        memorias.historicos[usuarioAtual].push({ remetente: 'mimi', texto: respostaTexto, timestamp: new Date().toISOString() });
+        salvarMemorias(memorias);
 
         res.json({ resposta: respostaTexto });
 
