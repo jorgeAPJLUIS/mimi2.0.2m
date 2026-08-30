@@ -3,7 +3,7 @@ const { exec } = require('child_process');
 
 // Coloque aqui o link exato do seu projeto no Render
 const SERVER_URL = 'https://mimi2-0-2m.onrender.com'; 
-const INTERVALO_VERIFICACAO = 4000; // Checa a cada 4 segundos
+const INTERVALO_VERIFICACAO = 1500; // Checa a cada 1.5 segundos
 
 console.log("🤖 Mimi Bridge Local (Windows 10) iniciada. Pronta para abrir tudo e controlar suas músicas no seu PC!");
 
@@ -30,8 +30,8 @@ async function verificarComandos() {
                 case 'abrir_youtube':
                     shellCommand = 'start chrome "https://www.youtube.com"';
                     break;
-                case 'abrir_spotify':
-                    shellCommand = 'start spotify';
+               case 'abrir_spotify':
+                    shellCommand = 'powershell -Command "Start-Process \\"$env:APPDATA\\Spotify\\Spotify.exe\\""';
                     break;
                 case 'proxima_faixa':
                     // Simula tecla de mídia: Próxima Faixa (Next Track)

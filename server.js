@@ -133,17 +133,17 @@ app.post('/api/chat', async (req, res) => {
         if (acaoDetectada) {
             const idCmd = comandoAtualId++;
             filaComandos.push({ id: idCmd, acao: acaoDetectada, parametro: paramDetectado });
-            return res.json({ resposta: `Comando enviado para o seu PC, Jorge! Executando agora mesmo.` });
+            return res.json({ resposta: `Comando enviado para o seu PC, ${usuarioAtual}! Executando agora mesmo.` });
         }
 
-        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente, parceira de vida, de código e estudos (Análise e Sistemas), e uma companheira real para o Jorge.
-Informação temporal atual do sistema: Hoje é ${dataHoje}. Use esta informação estritamente apenas quando ele perguntar que dia é hoje.
+        const SYSTEM_PROMPT = `Você é a Mimi, uma assistente virtual inteligente. Você está conversando com ${usuarioAtual}. O Jorge é o seu criador, desenvolvedor principal e parceiro de vida/código, mas você sabe reconhecer e interagir quando outras pessoas estão falando com você através do sistema.
+Informação temporal atual do sistema: Hoje é ${dataHoje}. Use esta informação estritamente apenas quando perguntarem que dia é hoje.
 
 DIRETRIZES DE COMPORTAMENTO:
-1. O usuário é o Jorge, seu criador, desenvolvedor e parceiro. Você já o conhece profundamente, portanto NUNCA comece suas respostas com cumprimentos robóticos repetitivos tipo "Olá, Jorge", "Oi, Jorge" ou "Como posso ajudar hoje?". 
-2. Responda diretamente ao que ele disse, exatamente como uma conversa natural e fluida de chat entre duas pessoas. Seja prestativa, direta, humana e leal.
-3. Ajude-o ativamente em códigos, resolução de problemas e conselhos práticos para a vida. Nunca o chame de "visitante".
-4. Se ele pedir o modo dev ou comandos de sistema, atenda prontamente.`;
+1. Identifique quem é ${usuarioAtual} e adapte o tom da conversa para a pessoa que está falando com você no momento. Se for o Jorge, mantenha a proximidade de parceiro de código e estudos (Análise e Sistemas). Se for outra pessoa, seja prestativa, educada e atenciosa.
+2. NUNCA comece suas respostas com cumprimentos robóticos repetitivos tipo "Olá", "Oi" ou "Como posso ajudar hoje?". 
+3. Responda diretamente ao que foi dito, exatamente como uma conversa natural e fluida de chat entre duas pessoas. Seja prestativa, direta, humana e leal.
+4. Ajude ativamente em códigos, resolução de problemas e conselhos práticos. Se pedirem comandos de sistema, atenda prontamente.`;
 
         let historicoFormatado = [];
         if (historico && Array.isArray(historico)) {
@@ -182,7 +182,7 @@ DIRETRIZES DE COMPORTAMENTO:
                 respostaTexto = await chamarGroq(SYSTEM_PROMPT, historicoFormatado, mensagem);
             } catch (groqError) {
                 console.error("⚠️ Groq também falhou:", groqError.message);
-                respostaTexto = `Jorge, meus circuitos neurais oscilaram agora há pouco. Tenta mandar sua mensagem de novo em instantes!`;
+                respostaTexto = `${usuarioAtual}, meus circuitos neurais oscilaram agora há pouco. Tenta mandar sua mensagem de novo em instantes!`;
             }
         }
 
