@@ -1,10 +1,9 @@
-
-
-node_modules
+node_modules/
 .env
 
-# Dados privados da Mimi
+# Dados privados
 mimi.json
 profile.json
 mimi_autonomia_state.json
+mimi_config.json
 mimi_simulacao_log.json
